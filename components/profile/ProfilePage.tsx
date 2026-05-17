@@ -156,7 +156,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="px-6 py-8">
+    <div className="px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-5">
           <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#BFFF00] bg-[#1A1A1A]">

@@ -91,7 +91,7 @@ export function HomePage() {
   };
 
   return (
-    <div className="px-6 py-8">
+    <div className="px-4 py-6 sm:px-6 sm:py-8">
       <CreateMatchModal
         open={createOpen}
         type={createType}
@@ -100,7 +100,7 @@ export function HomePage() {
       />
       <div className="mb-8 max-w-2xl">
         <p className="mb-1 text-[#888]">Olá, {greeting}!</p>
-        <h1 className="mb-2 text-3xl font-bold text-white">
+        <h1 className="mb-2 text-2xl font-bold text-white sm:text-3xl">
           Marca o teu próximo jogo em minutos
         </h1>
         <p className="text-sm leading-relaxed text-[#888]">
@@ -128,8 +128,8 @@ export function HomePage() {
           const data = section.data.filter(filterMatch);
           return (
             <section key={section.id} className="mb-12">
-              <div className="mb-4 flex items-center justify-between px-1">
-                <h2 className="text-xl font-bold text-white">
+              <div className="mb-4 flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-bold text-white sm:text-xl">
                   {section.id === 'weekly' ? 'Grupos semanais' : 'Jogos avulsos'}
                 </h2>
                 <button
@@ -149,7 +149,7 @@ export function HomePage() {
                     : 'Ainda não tens jogos avulsos.'}
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-3">
                   {data.map((match) => (
                     <MatchCard key={match.id} match={match} />
                   ))}

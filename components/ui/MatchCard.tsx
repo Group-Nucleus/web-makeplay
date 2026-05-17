@@ -9,12 +9,13 @@ export function MatchCard({ match }: { match: Match }) {
   return (
     <Link
       href={`/match/${match.id}`}
-      className="group block w-full max-w-[280px] overflow-hidden rounded-2xl bg-[#1A1A1A] transition-transform hover:scale-[1.02]">
-      <div className="relative h-[120px] w-full">
+      className="group flex min-w-0 w-full flex-col overflow-hidden rounded-2xl bg-[#1A1A1A] transition-transform active:scale-[0.99] md:hover:scale-[1.02]">
+      <div className="relative aspect-[16/10] w-full shrink-0">
         <img
           src={match.image ?? FALLBACK}
           alt={match.title}
           className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-3">

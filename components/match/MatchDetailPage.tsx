@@ -74,7 +74,7 @@ export function MatchDetailPage({
   const canInvite = vm.canShare && !!doc?.inviteCode;
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-4 py-4 sm:px-6 sm:py-6">
       <GuestJoinModal
         open={vm.guestJoinOpen}
         onClose={() => vm.setGuestJoinOpen(false)}
@@ -82,7 +82,7 @@ export function MatchDetailPage({
       />
 
       {vm.shareFeedback && (
-        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-[#BFFF00] px-4 py-2 text-sm font-bold text-black shadow-lg">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-[200] max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full bg-[#BFFF00] px-4 py-2 text-center text-sm font-bold text-black shadow-lg md:bottom-6">
           {vm.shareFeedback}
         </div>
       )}

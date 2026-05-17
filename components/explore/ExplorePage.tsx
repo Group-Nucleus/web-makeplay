@@ -78,7 +78,7 @@ export function ExplorePage() {
   const showVenues = filter === 'Tudo' || filter === 'Quadras';
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-4 py-6 sm:px-6">
       <CreateVenueModal
         open={createVenueOpen}
         onClose={() => setCreateVenueOpen(false)}
@@ -125,7 +125,7 @@ export function ExplorePage() {
               {featured.length === 0 ? (
                 <p className="text-sm text-[#888]">Nenhum jogo público disponível</p>
               ) : (
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-3">
                   {featured.map((m) => (
                     <MatchCard key={m.id} match={m} />
                   ))}
@@ -137,14 +137,14 @@ export function ExplorePage() {
           {showPeople && (
             <section className="mb-10">
               <h2 className="mb-4 text-lg font-bold text-white">Jogadores em destaque</h2>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-3 gap-3 min-[400px]:grid-cols-4 sm:grid-cols-5">
                 {users
                   .filter((u) => u.uid !== user?.uid)
                   .slice(0, 8)
                   .map((u) => (
                     <div
                       key={u.uid}
-                      className="flex w-[100px] flex-col items-center rounded-xl bg-[#1A1A1A] p-3">
+                      className="flex min-w-0 flex-col items-center rounded-xl bg-[#1A1A1A] p-3">
                       <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[#2a2a2a] text-sm font-bold text-white">
                         {(u.displayName || '?').slice(0, 2).toUpperCase()}
                       </div>
@@ -163,13 +163,13 @@ export function ExplorePage() {
 
           {showVenues && (
             <section>
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-white">Quadras populares</h2>
                 {user && (
                   <button
                     type="button"
                     onClick={() => setCreateVenueOpen(true)}
-                    className="rounded-full bg-[#BFFF00] px-4 py-2 text-xs font-bold text-black">
+                    className="w-fit shrink-0 rounded-full bg-[#BFFF00] px-4 py-2 text-xs font-bold text-black">
                     + Cadastrar quadra
                   </button>
                 )}

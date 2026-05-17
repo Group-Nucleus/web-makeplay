@@ -15,9 +15,12 @@ export function AppShell({
   const wide = pathname.startsWith('/match/') || pathname.startsWith('/profile');
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-black text-white">
       <Navbar guestMode={guestMode} />
-      <main className={`mx-auto w-full flex-1 px-0 ${wide ? 'max-w-7xl' : 'max-w-6xl'}`}>
+      <main
+        className={`mx-auto w-full min-w-0 flex-1 px-0 ${
+          wide ? 'max-w-7xl' : 'max-w-6xl'
+        } ${guestMode ? '' : 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'}`}>
         {children}
       </main>
     </div>

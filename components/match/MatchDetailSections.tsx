@@ -197,15 +197,18 @@ export function MatchSlotsGrid({
 }) {
   const freeCount = Math.max(0, spots - filledCount);
 
+  const slotGridClass =
+    'grid grid-cols-3 gap-2 min-[380px]:grid-cols-4 sm:grid-cols-4 sm:gap-3 md:grid-cols-5';
+
   if (canSeeNames) {
     return (
-      <div className="flex flex-wrap gap-3">
+      <div className={slotGridClass}>
         {players.map((p) => {
           const isOrg = organizerUid && p.uid === organizerUid;
           return (
             <div
               key={p.id}
-              className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-[#333] bg-[#1A1A1A] p-2">
+              className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-[#333] bg-[#1A1A1A] p-2">
               <div
                 className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold ${
                   isOrg ? 'ring-2 ring-[#BFFF00]' : ''
@@ -228,7 +231,7 @@ export function MatchSlotsGrid({
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className={slotGridClass}>
       {Array.from({ length: Math.min(filledCount, spots) }).map((_, i) => (
         <OccupiedSlot key={`occ-${i}`} />
       ))}
@@ -241,7 +244,7 @@ export function MatchSlotsGrid({
 
 function EmptySlot() {
   return (
-    <div className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-dashed border-[#333] bg-[#1A1A1A] p-2">
+    <div className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-dashed border-[#333] bg-[#1A1A1A] p-2">
       <p className="text-center text-[10px] font-bold text-[#666]">VAGA LIVRE</p>
     </div>
   );
@@ -249,7 +252,7 @@ function EmptySlot() {
 
 function OccupiedSlot() {
   return (
-    <div className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-[#444] bg-[#141414] p-2 opacity-80">
+    <div className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-[#444] bg-[#141414] p-2 opacity-80">
       <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a]">
         <Lock className="h-4 w-4 text-[#666]" />
       </div>
