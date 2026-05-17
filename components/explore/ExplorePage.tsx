@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MapPin, Search, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { CreateVenueModal } from '@/components/venue/CreateVenueModal';
 import { MatchCard } from '@/components/ui/MatchCard';
 import { useAuth } from '@/lib/auth/context';
 import { POLL_EXPLORE_MS } from '@/lib/constants';
@@ -34,6 +35,7 @@ export function ExplorePage() {
   const [users, setUsers] = useState<UserDocument[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createVenueOpen, setCreateVenueOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!apiSessionReady) {
@@ -77,6 +79,11 @@ export function ExplorePage() {
 
   return (
     <div className="px-6 py-6">
+      <CreateVenueModal
+        open={createVenueOpen}
+        onClose={() => setCreateVenueOpen(false)}
+        onCreated={() => void load()}
+      />
       <div className="mb-4 flex items-center gap-3 rounded-xl bg-[#1A1A1A] px-4 py-3">
         <Search className="h-[18px] w-[18px] text-[#888]" />
         <input
@@ -156,7 +163,17 @@ export function ExplorePage() {
 
           {showVenues && (
             <section>
-              <h2 className="mb-4 text-lg font-bold text-white">Quadras populares</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Quadras populares</h2>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => setCreateVenueOpen(true)}
+                    className="rounded-full bg-[#BFFF00] px-4 py-2 text-xs font-bold text-black">
+                    + Cadastrar quadra
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
                 {venues.map((v) => (
                   <div

@@ -1,31 +1,36 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/lib/auth/context';
+import { getPostLoginRedirectPath } from '@/lib/storage/guestInvite';
 import { inputClass } from '@/components/ui/Field';
 
 export function LoginPage() {
-  const { signInWithPhone, signInWithGoogle } = useAuth();
+  const { signInWithPhone, signInWithGoogle, user, loading, apiSessionReady } = useAuth();
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (loading || !user || !apiSessionReady) return;
+    router.replace(getPostLoginRedirectPath());
+  }, [loading, user, apiSessionReady, router]);
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSubmitting(true);
     try {
       await signInWithPhone(phone.trim(), password);
-      router.replace('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha no login');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -34,13 +39,22 @@ export function LoginPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.replace('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha no login com Google');
     } finally {
       setGoogleLoading(false);
     }
   };
+
+  const redirecting = !loading && !!user && apiSessionReady;
+
+  if (redirecting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black px-6">
@@ -59,8 +73,8 @@ export function LoginPage() {
 
         <button
           type="button"
-          onClick={handleGoogle}
-          disabled={googleLoading || loading}
+          onClick={() => void handleGoogle()}
+          disabled={googleLoading || submitting}
           className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border border-[#333] bg-white py-3.5 text-sm font-semibold text-black disabled:opacity-60">
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -92,7 +106,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <form onSubmit={handlePhoneSubmit} className="space-y-4">
+        <form onSubmit={(e) => void handlePhoneSubmit(e)} className="space-y-4">
           <div>
             <label className="mb-2 block text-xs font-bold tracking-wider text-[#888]">
               TELEFONE
@@ -121,9 +135,9 @@ export function LoginPage() {
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
-            disabled={loading || googleLoading}
+            disabled={submitting || googleLoading}
             className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black disabled:opacity-60">
-            {loading ? 'A entrar...' : 'ENTRAR COM TELEFONE'}
+            {submitting ? 'A entrar...' : 'ENTRAR COM TELEFONE'}
           </button>
         </form>
       </div>

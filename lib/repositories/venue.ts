@@ -15,7 +15,33 @@ function venueDtoToVenue(d: VenueDto): Venue {
   };
 }
 
+export type CreateVenueForm = {
+  name: string;
+  address: string;
+  neighborhood?: string;
+  city?: string;
+  photos?: string[];
+  sports: SportType[];
+  amenities?: string[];
+  phone?: string;
+  openingHours?: string;
+  isPublic: boolean;
+};
+
+export async function createVenue(form: CreateVenueForm): Promise<string> {
+  const created = await api<VenueDto>('/venues', {
+    method: 'POST',
+    body: {
+      ...form,
+      photos: form.photos ?? [],
+      amenities: form.amenities ?? [],
+    },
+  });
+  return created.id;
+}
+
 export async function getPublicVenues(limit = 60): Promise<Venue[]> {
-  const res = await api<PaginatedVenuesDto>(`/venues?limit=${limit}`);
+  const qs = new URLSearchParams({ isPublic: 'true', limit: String(limit) });
+  const res = await api<PaginatedVenuesDto>(`/venues?${qs.toString()}`);
   return res.items.map(venueDtoToVenue);
 }

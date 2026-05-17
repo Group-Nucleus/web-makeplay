@@ -11,7 +11,9 @@ pnpm install   # ou npm install
 pnpm dev
 ```
 
-Configure `NEXT_PUBLIC_API_URL` (ex.: `https://api-makeplay.onrender.com/v1`).
+Configure `NEXT_PUBLIC_API_URL` (recomendado: `/v1` — proxy no `next.config.ts` para `api-makeplay`).
+
+**Vercel:** use `NEXT_PUBLIC_API_URL=/v1` (não a URL absoluta do Render), senão o browser bloqueia por CORS.
 
 ## Rotas
 

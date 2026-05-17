@@ -1,4 +1,5 @@
 import { api } from '@/lib/api/client';
+import { getAccessToken } from '@/lib/api/token';
 import type {
   CreateMatchResponseDto,
   InviteIndexDto,
@@ -44,9 +45,14 @@ export async function listMatches(params: {
 export async function getMatchDetail(
   matchId: string,
   inviteCode?: string,
+  guestToken?: string,
 ): Promise<MatchDetailResponseDto> {
   const code = inviteCode ? normalizeInviteIndexId(inviteCode) : undefined;
-  return api<MatchDetailResponseDto>(`/matches/${matchId}${queryString({ code })}`);
+  const skipAuth = !getAccessToken() && (!!code || !!guestToken);
+  return api<MatchDetailResponseDto>(
+    `/matches/${matchId}${queryString({ code, guestToken })}`,
+    skipAuth ? { skipAuth: true } : {},
+  );
 }
 
 export async function getMatchTeaser(
@@ -103,4 +109,19 @@ export async function updateParticipantStatus(
 
 export async function leaveMatch(matchId: string): Promise<void> {
   await api<void>(`/matches/${matchId}/participants/me`, { method: 'DELETE' });
+}
+
+export async function removeParticipant(matchId: string, participantId: string): Promise<void> {
+  await api<void>(`/matches/${matchId}/participants/${participantId}`, { method: 'DELETE' });
+}
+
+export async function toggleParticipantPaid(
+  matchId: string,
+  participantId: string,
+  isPaid: boolean,
+): Promise<ParticipantDto> {
+  return api<ParticipantDto>(`/matches/${matchId}/participants/${participantId}/paid`, {
+    method: 'PATCH',
+    body: { isPaid },
+  });
 }

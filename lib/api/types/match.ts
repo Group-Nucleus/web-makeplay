@@ -48,6 +48,7 @@ export interface ParticipantDto {
   isPaid: boolean;
   addedBy: string;
   addedAt: string;
+  guestToken?: string | null;
 }
 
 export interface MatchViewerDto {

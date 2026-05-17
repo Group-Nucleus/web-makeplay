@@ -6,11 +6,23 @@ import {
   setSessionUser,
   type StoredUser,
 } from '@/lib/api/token';
+import {
+  clearGuestParticipant,
+  clearPendingGuestClaimToken,
+  getPendingGuestClaimToken,
+} from '@/lib/storage/guestParticipant';
 import type { UserDocument } from '@/lib/models/user';
+
+export interface GuestClaimResult {
+  claimed: boolean;
+  matchId?: string;
+  participantId?: string;
+}
 
 export interface ApiSessionResponse {
   accessToken: string;
   user: UserDocument;
+  guestClaim?: GuestClaimResult;
 }
 
 function userToStored(u: UserDocument): StoredUser {
@@ -22,14 +34,23 @@ function userToStored(u: UserDocument): StoredUser {
   };
 }
 
+function applyGuestClaim(session: ApiSessionResponse): void {
+  if (session.guestClaim?.claimed && session.guestClaim.matchId) {
+    clearGuestParticipant(session.guestClaim.matchId);
+  }
+  clearPendingGuestClaimToken();
+}
+
 export async function createApiSession(idToken: string): Promise<ApiSessionResponse> {
+  const guestToken = getPendingGuestClaimToken() ?? undefined;
   const session = await api<ApiSessionResponse>('/auth/session', {
     method: 'POST',
-    body: { idToken },
+    body: { idToken, guestToken },
     skipAuth: true,
   });
   setAccessToken(session.accessToken);
   setSessionUser(userToStored(session.user));
+  applyGuestClaim(session);
   return session;
 }
 
@@ -37,13 +58,15 @@ export async function createPhoneSession(
   phone: string,
   password: string,
 ): Promise<ApiSessionResponse> {
+  const guestToken = getPendingGuestClaimToken() ?? undefined;
   const session = await api<ApiSessionResponse>('/auth/phone', {
     method: 'POST',
-    body: { phone, password },
+    body: { phone, password, guestToken },
     skipAuth: true,
   });
   setAccessToken(session.accessToken);
   setSessionUser(userToStored(session.user));
+  applyGuestClaim(session);
   return session;
 }
 

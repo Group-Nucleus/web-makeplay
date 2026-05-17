@@ -1,13 +1,14 @@
 'use client';
 
-import { ArrowLeft, Globe, Lock, Users, X } from 'lucide-react';
+import { ArrowLeft, Globe, MapPin, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { CreateVenueModal } from '@/components/venue/CreateVenueModal';
+import { VenuePickerSheet } from '@/components/venue/VenuePickerSheet';
 import { Field, inputClass } from '@/components/ui/Field';
 import { useCreateMatch } from '@/lib/hooks/useCreateMatch';
-import type { MatchType, MatchPrivacy, SportType } from '@/lib/models/match';
+import type { MatchType, MatchPrivacy, SportType, Venue } from '@/lib/models/match';
 import { getPublicVenues } from '@/lib/repositories/venue';
-import type { Venue } from '@/lib/models/match';
 
 const SPORTS: { id: SportType; label: string; emoji: string }[] = [
   { id: 'soccer', label: 'Futebol', emoji: '⚽' },
@@ -42,13 +43,23 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
     onClose();
   });
   const [venues, setVenues] = useState<Venue[]>([]);
+  const [venuePickerOpen, setVenuePickerOpen] = useState(false);
+  const [createVenueOpen, setCreateVenueOpen] = useState(false);
   const isWeekly = type === 'weekly';
 
+  const refreshVenues = () => {
+    getPublicVenues().then(setVenues).catch(() => {});
+  };
+
   useEffect(() => {
-    if (open) {
-      getPublicVenues().then(setVenues).catch(() => {});
-    }
+    if (open) refreshVenues();
   }, [open]);
+
+  const handleVenueCreated = (venue: Venue) => {
+    vm.setVenue(venue);
+    setVenues((prev) => (prev.some((v) => v.id === venue.id) ? prev : [...prev, venue]));
+    setCreateVenueOpen(false);
+  };
 
   if (!open) return null;
 
@@ -56,7 +67,25 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-[#0d0d0d] border border-[#2a2a2a]">
+      <VenuePickerSheet
+        open={venuePickerOpen}
+        onClose={() => setVenuePickerOpen(false)}
+        venues={venues}
+        onSelect={(venue) => {
+          vm.setVenue(venue);
+          setVenuePickerOpen(false);
+        }}
+        onCreateNew={() => {
+          setVenuePickerOpen(false);
+          setCreateVenueOpen(true);
+        }}
+      />
+      <CreateVenueModal
+        open={createVenueOpen}
+        onClose={() => setCreateVenueOpen(false)}
+        onCreated={handleVenueCreated}
+      />
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#0d0d0d]">
         <header className="flex items-center gap-3 border-b border-[#2a2a2a] px-5 py-4">
           {vm.step > 1 ? (
             <button
@@ -116,30 +145,46 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                   placeholder="Ex: Galera do fut"
                 />
               </Field>
-              <Field label="Quadra (opcional)" error={undefined}>
-                <select
-                  className={inputClass}
-                  value={vm.selectedVenue?.id ?? ''}
-                  onChange={(e) => {
-                    const v = venues.find((x) => x.id === e.target.value);
-                    vm.setVenue(v ?? null);
-                  }}>
-                  <option value="">Selecionar quadra...</option>
-                  {venues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Local / endereço" error={vm.errors.location}>
-                <input
-                  className={inputClass}
-                  value={vm.form.location}
-                  onChange={(e) => vm.setField('location', e.target.value)}
-                  placeholder="Rua, número, bairro"
-                />
-              </Field>
+              {vm.selectedVenue ? (
+                <div className="mb-4 rounded-xl border border-[#333] bg-[#1A1A1A] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 gap-3">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#BFFF00]" />
+                      <div>
+                        <p className="font-semibold text-white">{vm.selectedVenue.name}</p>
+                        <p className="truncate text-xs text-[#888]">{vm.selectedVenue.address}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => vm.setVenue(null)}
+                      className="text-[#888] hover:text-white">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setVenuePickerOpen(true)}
+                    className="mb-4 w-full rounded-xl border border-[#333] bg-[#1A1A1A] px-4 py-3 text-left">
+                    <p className="mb-1 text-xs font-bold tracking-wider text-[#888]">QUADRA</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#666]">Selecionar quadra</span>
+                      <MapPin className="h-4 w-4 text-[#BFFF00]" />
+                    </div>
+                  </button>
+                  <Field label="Local / endereço" error={vm.errors.location}>
+                    <input
+                      className={inputClass}
+                      value={vm.form.location}
+                      onChange={(e) => vm.setField('location', e.target.value)}
+                      placeholder="Rua, número, bairro"
+                    />
+                  </Field>
+                </>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Dia (DD/MM/AAAA)" error={vm.errors.day}>
                   <input

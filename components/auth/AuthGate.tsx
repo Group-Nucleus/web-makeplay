@@ -5,24 +5,30 @@ import { useEffect } from 'react';
 
 import { useAuth } from '@/lib/auth/context';
 import { LoginPage } from '@/components/auth/LoginPage';
-
-const GUEST_PREFIXES = ['/match/', '/invite/'];
-
-function isGuestRoute(pathname: string) {
-  return GUEST_PREFIXES.some((p) => pathname.startsWith(p));
-}
+import { isGuestPathname, matchPathWithCode } from '@/lib/guestRoutes';
+import { getGuestInviteContext } from '@/lib/storage/guestInvite';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading, apiSessionReady } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const guest = isGuestRoute(pathname);
+  const guestRoute = isGuestPathname(pathname);
 
   useEffect(() => {
-    if (!loading && !user && !guest && pathname !== '/login') {
+    if (loading || user) return;
+
+    if (guestRoute || pathname === '/login') return;
+
+    const invite = getGuestInviteContext();
+    if (invite) {
+      router.replace(matchPathWithCode(invite.matchId, invite.code));
+      return;
+    }
+
+    if (pathname !== '/login') {
       router.replace('/login');
     }
-  }, [loading, user, guest, pathname, router]);
+  }, [loading, user, guestRoute, pathname, router]);
 
   if (loading) {
     return (
@@ -32,7 +38,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (guest) return <>{children}</>;
+  if (guestRoute) return <>{children}</>;
 
   if (!user || !apiSessionReady) {
     if (pathname === '/login') return <LoginPage />;

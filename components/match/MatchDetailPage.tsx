@@ -1,27 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Clock, MapPin, User } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Calendar, Clock, Copy, Link2, MapPin, Share2, User } from 'lucide-react';
+import { useState } from 'react';
 
+import { GuestJoinModal } from '@/components/match/GuestJoinModal';
+import {
+  AttendanceProgress,
+  MatchSlotsGrid,
+  PendingSection,
+  PlayerSection,
+  sectionAccent,
+} from '@/components/match/MatchDetailSections';
+import { useMatchDetail } from '@/lib/hooks/useMatchDetail';
 import { useAuth } from '@/lib/auth/context';
-import {
-  matchDocumentFromApiDetail,
-  matchFromInviteIndexDto,
-  matchListItemFromApiItem,
-  participantFromApiDto,
-} from '@/lib/mappers/match';
-import type { Match } from '@/lib/models/match';
-import type { MatchDocument, ParticipantDocument } from '@/lib/models/match-document';
-import {
-  getInviteByCode,
-  getMatchDetail,
-  getMatchTeaser,
-  joinMatch,
-  joinMatchAsGuest,
-  leaveMatch,
-  normalizeInviteIndexId,
-} from '@/lib/repositories/match';
+import type { MatchDocument } from '@/lib/models/match-document';
+import type { MatchPrivacy } from '@/lib/models/match';
 
 const FIELD_IMAGE =
   'https://images.pexels.com/photos/36958045/pexels-photo-36958045.jpeg';
@@ -42,90 +36,11 @@ export function MatchDetailPage({
   matchId: string;
   inviteCode?: string;
 }) {
-  const { user, apiSessionReady } = useAuth();
-  const codeNorm = inviteCode ? normalizeInviteIndexId(inviteCode) : '';
-  const [match, setMatch] = useState<Match | null>(null);
-  const [doc, setDoc] = useState<MatchDocument | null>(null);
-  const [participants, setParticipants] = useState<ParticipantDocument[]>([]);
-  const [organizerName, setOrganizerName] = useState('');
-  const [viewerJoined, setViewerJoined] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
+  const vm = useMatchDetail(matchId, inviteCode);
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('INFO');
-  const [guestName, setGuestName] = useState('');
-  const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      let detail;
-      try {
-        detail = await getMatchDetail(matchId, codeNorm || undefined);
-      } catch {
-        const teaser = await getMatchTeaser(matchId, codeNorm || undefined);
-        detail = {
-          match: teaser,
-          participants: [],
-          viewer: {
-            isOrganizer: false,
-            isParticipant: false,
-            myParticipantId: null,
-            myStatus: null,
-            canSeeSensitive: false,
-          },
-        };
-      }
-      const m = matchListItemFromApiItem({ ...detail.match, id: matchId });
-      setMatch(m);
-      setDoc(matchDocumentFromApiDetail(detail));
-      setParticipants((detail.participants ?? []).map(participantFromApiDto));
-      setOrganizerName(detail.organizer?.displayName ?? '');
-      setViewerJoined(detail.viewer.isParticipant);
-    } catch {
-      if (codeNorm) {
-        const row = await getInviteByCode(codeNorm);
-        if (row && row.matchId === matchId) {
-          setMatch(matchFromInviteIndexDto(row));
-        } else {
-          setError('Partida não encontrada');
-        }
-      } else {
-        setError('Partida não encontrada');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [matchId, codeNorm]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const handleJoin = async () => {
-    if (!user && !guestName.trim()) return;
-    setJoining(true);
-    try {
-      if (user && apiSessionReady) {
-        await joinMatch(matchId, 'dentro');
-      } else {
-        await joinMatchAsGuest(matchId, guestName.trim(), codeNorm || undefined);
-      }
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao participar');
-    } finally {
-      setJoining(false);
-    }
-  };
-
-  const handleLeave = async () => {
-    if (!user) return;
-    await leaveMatch(matchId);
-    await load();
-  };
-
-  if (loading) {
+  if (vm.loading) {
     return (
       <div className="flex justify-center py-24">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
@@ -133,22 +48,45 @@ export function MatchDetailPage({
     );
   }
 
-  if (error || !match) {
+  if (vm.error || !vm.match) {
     return (
       <div className="px-6 py-24 text-center">
-        <p className="mb-4 text-white">{error || 'Partida não encontrada'}</p>
-        <Link href="/explore" className="text-[#BFFF00]">
-          Voltar ao explorar
-        </Link>
+        <p className="mb-4 text-white">{vm.error || 'Partida não encontrada'}</p>
+        {vm.isGuestViewer ? (
+          <Link href="/login" className="text-[#BFFF00]">
+            Entrar com conta
+          </Link>
+        ) : vm.guestInvitePath ? (
+          <Link href={vm.guestInvitePath} className="text-[#BFFF00]">
+            Voltar à partida
+          </Link>
+        ) : (
+          <Link href="/explore" className="text-[#BFFF00]">
+            Voltar ao explorar
+          </Link>
+        )}
       </div>
     );
   }
 
+  const { match, doc } = vm;
   const subtitle = [doc ? SPORT_LABEL[doc.sport] : '', doc?.gameType].filter(Boolean).join(' • ');
-  const dentro = participants.filter((p) => p.status === 'dentro');
+  const canInvite = vm.canShare && !!doc?.inviteCode;
 
   return (
     <div className="px-6 py-6">
+      <GuestJoinModal
+        open={vm.guestJoinOpen}
+        onClose={() => vm.setGuestJoinOpen(false)}
+        onSubmit={vm.handleGuestJoin}
+      />
+
+      {vm.shareFeedback && (
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-[#BFFF00] px-4 py-2 text-sm font-bold text-black shadow-lg">
+          {vm.shareFeedback}
+        </div>
+      )}
+
       <div className="flex flex-col gap-8 lg:flex-row">
         <aside className="w-full shrink-0 lg:w-[340px]">
           <div className="overflow-hidden rounded-2xl bg-[#1A1A1A]">
@@ -161,136 +99,354 @@ export function MatchDetailPage({
                 {subtitle && <p className="text-sm text-[#ccc]">{subtitle}</p>}
               </div>
             </div>
-            <div className="space-y-3 p-4">
-              {!viewerJoined ? (
-                user ? (
-                  <button
-                    type="button"
-                    disabled={joining}
-                    onClick={handleJoin}
-                    className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
-                    {joining ? 'A enviar...' : 'QUERO PARTICIPAR'}
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <input
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="O teu nome"
-                      className="w-full rounded-lg border border-[#333] bg-black px-3 py-2 text-white"
-                    />
-                    <button
-                      type="button"
-                      disabled={joining || !guestName.trim()}
-                      onClick={handleJoin}
-                      className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
-                      PARTICIPAR COMO CONVIDADO
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => (window.location.href = '/login')}
-                      className="w-full text-center text-sm text-[#BFFF00]">
-                      Entrar para gerir presença
-                    </button>
-                  </div>
-                )
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleLeave}
-                  className="w-full rounded-lg border border-[#BFFF00] py-3 text-sm font-bold text-[#BFFF00]">
-                  SAIR DA PARTIDA
-                </button>
-              )}
-              <div className="flex items-start gap-3 text-sm text-[#888]">
-                <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
-                <span className="text-white">{match.nextMatch}</span>
-              </div>
-              {match.location && (
-                <div className="flex items-start gap-3 text-sm">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#888]" />
-                  <span className="text-white">{match.location}</span>
-                </div>
-              )}
-              {organizerName && (
-                <div className="flex items-center gap-3 text-sm">
-                  <User className="h-4 w-4 text-[#888]" />
-                  <span className="text-white">{organizerName}</span>
-                </div>
-              )}
-            </div>
+            <JoinActions vm={vm} hasUser={!!user} canInvite={canInvite} />
+            <MatchMeta
+              match={match}
+              organizerName={vm.organizerName}
+              inviteCode={vm.canShare ? doc?.inviteCode : undefined}
+              onCopyCode={vm.handleCopyInviteCode}
+            />
+            {doc && <MatchDetails doc={doc} />}
           </div>
         </aside>
 
         <main className="min-w-0 flex-1">
-          <div className="mb-6 flex gap-6 border-b border-[#2a2a2a]">
-            {(['INFO', 'JOGADORES'] as Tab[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={`pb-3 text-sm font-bold tracking-wide ${
-                  tab === t
-                    ? 'border-b-2 border-[#BFFF00] text-[#BFFF00]'
-                    : 'text-[#888]'
-                }`}>
-                {t === 'INFO' ? 'CONFIRMADOS' : 'JOGADORES'}
-              </button>
-            ))}
-          </div>
-
+          <TabBar tab={tab} setTab={setTab} />
           {tab === 'INFO' && (
-            <div>
-              <div className="mb-6 rounded-xl border border-[#BFFF00]/30 bg-[#1A1A1A] p-4">
-                <p className="text-sm text-[#ccc]">
-                  <span className="font-bold text-[#BFFF00]">{dentro.length}</span> confirmados
-                  {' · '}
-                  <span className="font-bold text-white">{doc?.spots ?? match.spots}</span> vagas
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {Array.from({ length: doc?.spots ?? match.spots }).map((_, i) => {
-                  const p = dentro[i];
-                  return (
-                    <div
-                      key={p?.id ?? `slot-${i}`}
-                      className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-dashed border-[#333] bg-[#1A1A1A] p-2">
-                      {p ? (
-                        <>
-                          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold">
-                            {p.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <p className="truncate text-center text-xs font-semibold text-white">
-                            {p.name}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-center text-[10px] font-bold text-[#666]">VAGA LIVRE</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <InfoTab vm={vm} organizerUid={vm.organizerUid} />
           )}
-
           {tab === 'JOGADORES' && (
-            <ul className="space-y-2">
-              {participants.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between rounded-lg bg-[#1A1A1A] px-4 py-3">
-                  <span className="font-medium text-white">{p.name}</span>
-                  <span className="text-xs uppercase text-[#888]">{p.status}</span>
-                </li>
-              ))}
-              {participants.length === 0 && (
-                <p className="text-[#888]">Nenhum jogador ainda.</p>
-              )}
-            </ul>
+            <PlayersTab vm={vm} userId={user?.uid} />
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+function JoinActions({
+  vm,
+  hasUser,
+  canInvite,
+}: {
+  vm: ReturnType<typeof useMatchDetail>;
+  hasUser: boolean;
+  canInvite: boolean;
+}) {
+  return (
+    <div className="space-y-2 p-4">
+      {vm.error && <p className="text-xs text-red-400">{vm.error}</p>}
+
+      {vm.isOrganizer ? (
+        <div className="rounded-lg border border-[#BFFF00]/40 bg-[#BFFF00]/10 py-3 text-center text-sm font-bold text-[#BFFF00]">
+          Você é o organizador
+        </div>
+      ) : !vm.isJoined ? (
+        <button
+          type="button"
+          disabled={vm.joining || (vm.isGuestViewer && !vm.canGuestJoin)}
+          onClick={() => void vm.handleRequestToJoin()}
+          className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
+          {vm.joining
+            ? 'A enviar...'
+            : vm.isGuestViewer
+              ? 'ENTRAR SÓ COM O MEU NOME'
+              : 'QUERO PARTICIPAR'}
+        </button>
+      ) : vm.isPendingApproval ? (
+        <div className="flex items-center justify-center gap-2 rounded-lg border border-[#333] py-3 text-sm font-bold text-[#888]">
+          <Clock className="h-4 w-4" />
+          AGUARDANDO APROVAÇÃO
+        </div>
+      ) : vm.viewerJoined && hasUser ? (
+        <button
+          type="button"
+          onClick={() => void vm.handleLeave()}
+          className="w-full rounded-lg border border-[#BFFF00] py-3 text-sm font-bold text-[#BFFF00]">
+          SAIR DA PARTIDA
+        </button>
+      ) : null}
+
+      {canInvite && (
+        <button
+          type="button"
+          onClick={() => void vm.handleShareInvite()}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-white py-3 text-sm font-bold text-white">
+          <Share2 className="h-4 w-4" />
+          CONVIDAR
+        </button>
+      )}
+
+      {vm.isGuestViewer && (
+        <button
+          type="button"
+          onClick={() => (window.location.href = '/login')}
+          className="w-full text-center text-sm text-[#BFFF00]">
+          Entrar para gerir presença
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MatchMeta({
+  match,
+  organizerName,
+  inviteCode,
+  onCopyCode,
+}: {
+  match: { nextMatch: string; location?: string };
+  organizerName: string;
+  inviteCode?: string;
+  onCopyCode: () => void;
+}) {
+  return (
+    <>
+      <div className="flex items-start gap-3 px-4 pb-3 text-sm text-[#888]">
+        <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
+        <span className="text-white">{match.nextMatch}</span>
+      </div>
+      {match.location && (
+        <div className="flex items-start gap-3 px-4 pb-3 text-sm">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#888]" />
+          <span className="text-white">{match.location}</span>
+        </div>
+      )}
+      {organizerName && (
+        <div className="flex items-center gap-3 px-4 pb-3 text-sm">
+          <User className="h-4 w-4 text-[#888]" />
+          <span className="text-white">{organizerName}</span>
+        </div>
+      )}
+      {inviteCode && (
+        <button
+          type="button"
+          onClick={() => void onCopyCode()}
+          className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2 rounded-lg border border-[#333] bg-black px-3 py-2 text-left">
+          <Link2 className="h-4 w-4 shrink-0 text-[#BFFF00]" />
+          <span className="flex-1 font-mono text-sm font-bold tracking-widest text-[#BFFF00]">
+            {inviteCode}
+          </span>
+          <Copy className="h-4 w-4 shrink-0 text-[#BFFF00]" />
+        </button>
+      )}
+    </>
+  );
+}
+
+const PRIVACY_LABEL: Record<MatchPrivacy, string> = {
+  public: 'Público',
+  'friends-of-friends': 'Amigos de amigos',
+  friends: 'Amigos',
+  'invite-only': 'Apenas convidados',
+};
+
+function formatMoney(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function MatchDetails({ doc }: { doc: MatchDocument }) {
+  const typeLabel = doc.type === 'weekly' ? 'Grupo semanal' : 'Jogo avulso';
+  const description =
+    doc.description?.trim() ||
+    'Sem descrição adicional. Usa o convite para chamar jogadores e gerir a lista.';
+
+  return (
+    <div className="space-y-4 border-t border-[#2a2a2a] px-4 pb-4 pt-4">
+      <div>
+        <h3 className="mb-2 text-xs font-bold tracking-wider text-[#888]">DESCRIÇÃO</h3>
+        <p className="text-sm leading-relaxed text-[#ccc]">{description}</p>
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-xs font-bold tracking-wider text-[#888]">DETALHES</h3>
+        <dl className="space-y-2.5">
+          <DetailRow label="Tipo" value={typeLabel} />
+          <DetailRow label="Modalidade" value={SPORT_LABEL[doc.sport] ?? doc.sport} />
+          <DetailRow label="Tipo de quadra" value={doc.gameType} />
+          <DetailRow label="Duração" value={doc.duration} />
+          <DetailRow label="Intensidade" value={doc.intensity} />
+          <DetailRow label="Faixa etária" value={`${doc.ageMin} – ${doc.ageMax} anos`} />
+          <DetailRow label="Privacidade" value={PRIVACY_LABEL[doc.privacy]} />
+          <DetailRow label="Preço avulso" value={formatMoney(doc.pricePerGame)} />
+          {doc.type === 'weekly' && (
+            <DetailRow label="Preço mensal" value={formatMoney(doc.priceMonthly)} />
+          )}
+          <DetailRow label="Vagas" value={String(doc.spots)} />
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-4 border-b border-[#2a2a2a] pb-2 text-sm last:border-0">
+      <dt className="text-[#888]">{label}</dt>
+      <dd className="text-right font-medium text-white">{value}</dd>
+    </div>
+  );
+}
+
+function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  return (
+    <div className="mb-6 flex gap-6 border-b border-[#2a2a2a]">
+      {(['INFO', 'JOGADORES'] as Tab[]).map((t) => (
+        <button
+          key={t}
+          type="button"
+          onClick={() => setTab(t)}
+          className={`pb-3 text-sm font-bold tracking-wide ${
+            tab === t ? 'border-b-2 border-[#BFFF00] text-[#BFFF00]' : 'text-[#888]'
+          }`}>
+          {t === 'INFO' ? 'CONFIRMADOS' : 'JOGADORES'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function InfoTab({
+  vm,
+  organizerUid,
+}: {
+  vm: ReturnType<typeof useMatchDetail>;
+  organizerUid?: string;
+}) {
+  return (
+  <div>
+    <AttendanceProgress
+      confirmed={vm.confirmed}
+      spots={vm.spots}
+      remaining={vm.remaining}
+      progressPercent={vm.progressPercent}
+    />
+
+    <div className="mb-4 flex items-center justify-between">
+      <h2 className="text-base font-bold text-white">Jogadores confirmados</h2>
+      {vm.canShare && (
+        <button
+          type="button"
+          onClick={() => void vm.handleSharePlayersList()}
+          className="text-xs font-bold text-[#BFFF00]">
+          COMPARTILHAR LISTA
+        </button>
+      )}
+    </div>
+
+    <MatchSlotsGrid
+      spots={vm.spots}
+      filledCount={vm.confirmed}
+      players={vm.dentroList}
+      canSeeNames={vm.canSeeParticipantNames}
+      organizerUid={organizerUid}
+    />
+  </div>
+  );
+}
+
+function PlayersTab({
+  vm,
+  userId,
+}: {
+  vm: ReturnType<typeof useMatchDetail>;
+  userId?: string;
+}) {
+  if (vm.isGuestViewer && !vm.canSeeParticipantNames) {
+    return (
+      <div>
+        <AttendanceProgress
+          confirmed={vm.confirmed}
+          spots={vm.spots}
+          remaining={vm.remaining}
+          progressPercent={vm.progressPercent}
+        />
+        <p className="mb-4 text-sm text-[#888]">
+          As vagas ocupadas aparecem sem nomes. Entra com conta para ver a lista completa e
+          convidar outros jogadores.
+        </p>
+        <MatchSlotsGrid
+          spots={vm.spots}
+          filledCount={vm.confirmed}
+          players={[]}
+          canSeeNames={false}
+        />
+      </div>
+    );
+  }
+
+  const empty =
+    vm.dentroList.length === 0 &&
+    vm.esperaList.length === 0 &&
+    vm.foraList.length === 0 &&
+    vm.convidadoList.length === 0 &&
+    vm.aguardandoList.length === 0;
+
+  return (
+    <div>
+      {vm.canShare && (
+        <div className="mb-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => void vm.handleShareInvite()}
+            disabled={!vm.doc?.inviteCode}
+            className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#BFFF00] py-2.5 text-sm font-bold text-[#BFFF00] disabled:opacity-40">
+            <Share2 className="h-4 w-4" />
+            Convidar jogadores
+          </button>
+          <button
+            type="button"
+            onClick={() => void vm.handleSharePlayersList()}
+            className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#BFFF00] py-2.5 text-sm font-bold text-[#BFFF00]">
+            <Share2 className="h-4 w-4" />
+            Compartilhar lista
+          </button>
+        </div>
+      )}
+
+      {vm.isOrganizer && (
+        <PendingSection
+          players={vm.aguardandoList}
+          onApprove={(id) => void vm.handleApproveParticipant(id)}
+          onReject={(id) => void vm.handleRejectParticipant(id)}
+        />
+      )}
+
+      <PlayerSection
+        title="DENTRO"
+        players={vm.dentroList}
+        accent={sectionAccent('dentro')}
+        isOrganizer={vm.isOrganizer}
+        currentUserId={userId}
+        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+      />
+      <PlayerSection
+        title="LISTA DE ESPERA"
+        players={vm.esperaList}
+        accent={sectionAccent('lista-espera')}
+        isOrganizer={vm.isOrganizer}
+        currentUserId={userId}
+        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+      />
+      <PlayerSection
+        title="FORA"
+        players={vm.foraList}
+        accent={sectionAccent('fora')}
+        isOrganizer={vm.isOrganizer}
+        currentUserId={userId}
+        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+      />
+      <PlayerSection
+        title="CONVIDADOS"
+        players={vm.convidadoList}
+        accent={sectionAccent('convidado')}
+        isOrganizer={vm.isOrganizer}
+        currentUserId={userId}
+        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+      />
+
+      {empty && <p className="py-8 text-center text-[#888]">Nenhum jogador ainda.</p>}
     </div>
   );
 }

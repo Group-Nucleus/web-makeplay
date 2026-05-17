@@ -93,6 +93,7 @@ export function matchDocumentFromApiDetail(detail: MatchDetailResponseDto): Matc
     createdBy: m.createdBy,
     createdAt: m.createdAt,
     inviteCode: r?.inviteCode ?? '',
+    description: r?.description ?? null,
   };
 }
 

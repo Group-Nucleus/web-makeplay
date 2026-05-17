@@ -1,0 +1,259 @@
+'use client';
+
+import { Check, Lock, User, X } from 'lucide-react';
+
+import type { ParticipantDocument } from '@/lib/models/match-document';
+
+const SECTION_ACCENTS = {
+  dentro: '#BFFF00',
+  'lista-espera': '#C4915C',
+  fora: '#FF4136',
+  convidado: '#0D73EC',
+  'aguardando-aprovacao': '#C4915C',
+} as const;
+
+export function sectionAccent(status: keyof typeof SECTION_ACCENTS): string {
+  return SECTION_ACCENTS[status];
+}
+
+export function AttendanceProgress({
+  confirmed,
+  spots,
+  remaining,
+  progressPercent,
+}: {
+  confirmed: number;
+  spots: number;
+  remaining: number;
+  progressPercent: number;
+}) {
+  return (
+    <div className="mb-6 rounded-xl border border-[#2a2a2a] bg-[#1A1A1A] p-4">
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <p className="text-lg font-extrabold text-white">
+          {confirmed} <span className="text-xs font-bold text-[#888]">CONFIRMADOS</span>
+        </p>
+        <p className="text-lg font-extrabold text-white">
+          {remaining} <span className="text-xs font-bold text-[#888]">VAGAS</span>
+        </p>
+      </div>
+      <div className="mb-2 h-2 overflow-hidden rounded-full bg-[#333]">
+        <div
+          className="h-full rounded-full bg-[#BFFF00] transition-all duration-300"
+          style={{ width: `${Math.min(100, progressPercent)}%` }}
+        />
+      </div>
+      <p className="text-xs text-[#888]">
+        Capacidade: {spots} jogadores · {confirmed} confirmados
+      </p>
+    </div>
+  );
+}
+
+export function PendingSection({
+  players,
+  onApprove,
+  onReject,
+}: {
+  players: ParticipantDocument[];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
+  if (players.length === 0) return null;
+
+  return (
+    <ParticipantSection
+      title="AGUARDANDO APROVAÇÃO"
+      accent={SECTION_ACCENTS['aguardando-aprovacao']}
+      count={players.length}>
+      {players.map((p) => (
+        <div
+          key={p.id}
+          className="flex items-center gap-3 rounded-lg bg-[#141414] px-3 py-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a2a2a]">
+            <User className="h-4 w-4 text-[#666]" />
+          </div>
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">{p.name}</p>
+          <button
+            type="button"
+            onClick={() => onReject(p.id)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#FF4136]/40 text-[#FF4136]"
+            aria-label="Recusar">
+            <X className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onApprove(p.id)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#BFFF00] text-black"
+            aria-label="Aprovar">
+            <Check className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+    </ParticipantSection>
+  );
+}
+
+export function PlayerSection({
+  title,
+  players,
+  accent,
+  isOrganizer,
+  currentUserId,
+  onTogglePaid,
+}: {
+  title: string;
+  players: ParticipantDocument[];
+  accent: string;
+  isOrganizer: boolean;
+  currentUserId?: string;
+  onTogglePaid: (id: string) => void;
+}) {
+  if (players.length === 0) return null;
+
+  const showPaidCol = isOrganizer || players.some((p) => p.uid === currentUserId);
+
+  return (
+    <ParticipantSection title={title} accent={accent} count={players.length} showPaidCol={showPaidCol}>
+      {players.map((p) => {
+        const canSeePaid = isOrganizer || p.uid === currentUserId;
+        return (
+          <div
+            key={p.id}
+            className="flex items-center gap-3 rounded-lg bg-[#141414] px-3 py-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold text-white">
+              {initials(p.name)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-white">{p.name}</p>
+              {p.position && <p className="text-[10px] text-[#888]">{p.position}</p>}
+            </div>
+            {showPaidCol && (
+              <button
+                type="button"
+                disabled={!canSeePaid}
+                onClick={() => canSeePaid && onTogglePaid(p.id)}
+                className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                  p.isPaid
+                    ? 'bg-[#BFFF00]/20 text-[#BFFF00]'
+                    : 'bg-[#333] text-[#666]'
+                } ${!canSeePaid ? 'cursor-default opacity-50' : ''}`}>
+                {p.isPaid ? 'Pago' : 'Pendente'}
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </ParticipantSection>
+  );
+}
+
+function ParticipantSection({
+  title,
+  accent,
+  count,
+  showPaidCol,
+  children,
+}: {
+  title: string;
+  accent: string;
+  count: number;
+  showPaidCol?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-6">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+        <h3 className="text-xs font-bold tracking-wider text-white">{title}</h3>
+        <span className="text-xs font-semibold text-[#666]">{count}</span>
+        {showPaidCol && (
+          <span className="ml-auto text-[10px] font-bold tracking-wider text-[#666]">PAGO</span>
+        )}
+      </div>
+      <div className="space-y-2">{children}</div>
+    </section>
+  );
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
+}
+
+/** Grelha de vagas: convidados sem conta veem vagas ocupadas sem nomes. */
+export function MatchSlotsGrid({
+  spots,
+  filledCount,
+  players,
+  canSeeNames,
+  organizerUid,
+}: {
+  spots: number;
+  filledCount: number;
+  players: ParticipantDocument[];
+  canSeeNames: boolean;
+  organizerUid?: string;
+}) {
+  const freeCount = Math.max(0, spots - filledCount);
+
+  if (canSeeNames) {
+    return (
+      <div className="flex flex-wrap gap-3">
+        {players.map((p) => {
+          const isOrg = organizerUid && p.uid === organizerUid;
+          return (
+            <div
+              key={p.id}
+              className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-[#333] bg-[#1A1A1A] p-2">
+              <div
+                className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold ${
+                  isOrg ? 'ring-2 ring-[#BFFF00]' : ''
+                }`}>
+                {initials(p.name)}
+              </div>
+              {isOrg && (
+                <span className="mb-1 text-[9px] font-bold text-[#BFFF00]">ORGANIZADOR</span>
+              )}
+              <p className="truncate text-center text-xs font-semibold text-white">{p.name}</p>
+              <p className="text-[10px] font-bold text-[#666]">CONFIRMADO</p>
+            </div>
+          );
+        })}
+        {Array.from({ length: Math.min(freeCount, 12) }).map((_, i) => (
+          <EmptySlot key={`free-${i}`} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {Array.from({ length: Math.min(filledCount, spots) }).map((_, i) => (
+        <OccupiedSlot key={`occ-${i}`} />
+      ))}
+      {Array.from({ length: Math.min(freeCount, 12) }).map((_, i) => (
+        <EmptySlot key={`free-${i}`} />
+      ))}
+    </div>
+  );
+}
+
+function EmptySlot() {
+  return (
+    <div className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-dashed border-[#333] bg-[#1A1A1A] p-2">
+      <p className="text-center text-[10px] font-bold text-[#666]">VAGA LIVRE</p>
+    </div>
+  );
+}
+
+function OccupiedSlot() {
+  return (
+    <div className="flex h-[130px] w-[112px] flex-col items-center justify-center rounded-xl border border-[#444] bg-[#141414] p-2 opacity-80">
+      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a]">
+        <Lock className="h-4 w-4 text-[#666]" />
+      </div>
+      <p className="text-center text-[10px] font-bold text-[#888]">OCUPADA</p>
+    </div>
+  );
+}

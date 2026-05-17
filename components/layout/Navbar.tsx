@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { User } from 'lucide-react';
 
+import { getGuestInviteContext } from '@/lib/storage/guestInvite';
+import { matchPathWithCode } from '@/lib/guestRoutes';
+
 const AUTH_LINKS = [
   { href: '/', label: 'Início' },
   { href: '/explore', label: 'Explorar' },
@@ -12,9 +15,30 @@ const AUTH_LINKS = [
 
 export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
   const pathname = usePathname();
-  const links = guestMode
-    ? ([{ href: '/explore', label: 'Explorar' }] as const)
-    : AUTH_LINKS;
+
+  if (guestMode) {
+    const invite = getGuestInviteContext();
+    const homeHref = invite ? matchPathWithCode(invite.matchId, invite.code) : pathname;
+
+    return (
+      <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-black">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+          <Link href={homeHref} className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#BFFF00] text-sm font-black text-black">
+              B
+            </span>
+            <span className="text-sm font-extrabold tracking-widest text-[#BFFF00]">BORAPLAY</span>
+          </Link>
+          <span className="text-xs font-medium text-[#888]">Convite à partida</span>
+          <Link
+            href="/login"
+            className="rounded-lg border border-[#BFFF00] px-3 py-1.5 text-xs font-bold text-[#BFFF00]">
+            Entrar
+          </Link>
+        </div>
+      </header>
+    );
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -24,7 +48,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
   return (
     <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-black">
       <div className="mx-auto flex max-w-6xl items-center gap-8 px-6 py-3.5">
-        <Link href={guestMode ? '/explore' : '/'} className="mr-auto flex items-center gap-2.5">
+        <Link href="/" className="mr-auto flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#BFFF00] text-sm font-black text-black">
             B
           </span>
@@ -32,7 +56,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
         </Link>
 
         <nav className="flex items-center gap-2">
-          {links.map((item) => (
+          {AUTH_LINKS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -46,16 +70,14 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
           ))}
         </nav>
 
-        {!guestMode && (
-          <Link
-            href="/profile"
-            className={`flex h-10 w-10 items-center justify-center rounded-lg bg-[#1A1A1A] ${
-              isActive('/profile') ? 'ring-1 ring-[#BFFF00]' : ''
-            }`}
-            aria-label="Perfil">
-            <User className="h-[18px] w-[18px] text-white" />
-          </Link>
-        )}
+        <Link
+          href="/profile"
+          className={`flex h-10 w-10 items-center justify-center rounded-lg bg-[#1A1A1A] ${
+            isActive('/profile') ? 'ring-1 ring-[#BFFF00]' : ''
+          }`}
+          aria-label="Perfil">
+          <User className="h-[18px] w-[18px] text-white" />
+        </Link>
       </div>
     </header>
   );

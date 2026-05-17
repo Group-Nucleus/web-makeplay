@@ -41,4 +41,5 @@ export interface MatchDocument {
   createdBy: string;
   createdAt: string;
   inviteCode: string;
+  description?: string | null;
 }
