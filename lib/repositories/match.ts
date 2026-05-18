@@ -125,3 +125,23 @@ export async function toggleParticipantPaid(
     body: { isPaid },
   });
 }
+
+export async function addMatchOrganizer(
+  matchId: string,
+  userId: string,
+): Promise<{ organizers: string[] }> {
+  return api<{ organizers: string[] }>(`/matches/${matchId}/organizers`, {
+    method: 'POST',
+    body: { userId },
+  });
+}
+
+export async function removeMatchOrganizer(
+  matchId: string,
+  userId: string,
+): Promise<{ organizers: string[] }> {
+  return api<{ organizers: string[] }>(
+    `/matches/${matchId}/organizers/${encodeURIComponent(userId)}`,
+    { method: 'DELETE' },
+  );
+}

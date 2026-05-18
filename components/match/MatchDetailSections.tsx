@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Lock, User, X } from 'lucide-react';
+import { Check, Lock, MoreVertical, User, X } from 'lucide-react';
 
 import type { ParticipantDocument } from '@/lib/models/match-document';
 
@@ -101,6 +101,8 @@ export function PlayerSection({
   isOrganizer,
   currentUserId,
   onTogglePaid,
+  onManagePlayer,
+  organizerUids = [],
 }: {
   title: string;
   players: ParticipantDocument[];
@@ -108,6 +110,8 @@ export function PlayerSection({
   isOrganizer: boolean;
   currentUserId?: string;
   onTogglePaid: (id: string) => void;
+  onManagePlayer?: (id: string) => void;
+  organizerUids?: string[];
 }) {
   if (players.length === 0) return null;
 
@@ -117,6 +121,7 @@ export function PlayerSection({
     <ParticipantSection title={title} accent={accent} count={players.length} showPaidCol={showPaidCol}>
       {players.map((p) => {
         const canSeePaid = isOrganizer || p.uid === currentUserId;
+        const isAdmin = !!p.uid && organizerUids.includes(p.uid);
         return (
           <div
             key={p.id}
@@ -126,19 +131,33 @@ export function PlayerSection({
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-white">{p.name}</p>
-              {p.position && <p className="text-[10px] text-[#888]">{p.position}</p>}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {p.position && <p className="text-[10px] text-[#888]">{p.position}</p>}
+                {isAdmin && (
+                  <span className="text-[9px] font-bold uppercase text-[#BFFF00]">Admin</span>
+                )}
+              </div>
             </div>
             {showPaidCol && (
               <button
                 type="button"
                 disabled={!canSeePaid}
                 onClick={() => canSeePaid && onTogglePaid(p.id)}
-                className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${
                   p.isPaid
                     ? 'bg-[#BFFF00]/20 text-[#BFFF00]'
                     : 'bg-[#333] text-[#666]'
                 } ${!canSeePaid ? 'cursor-default opacity-50' : ''}`}>
                 {p.isPaid ? 'Pago' : 'Pendente'}
+              </button>
+            )}
+            {isOrganizer && onManagePlayer && (
+              <button
+                type="button"
+                onClick={() => onManagePlayer(p.id)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#333] text-[#888] hover:text-white"
+                aria-label={`Gerir ${p.name}`}>
+                <MoreVertical className="h-4 w-4" />
               </button>
             )}
           </div>

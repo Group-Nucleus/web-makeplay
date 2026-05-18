@@ -16,6 +16,7 @@ import { buildInviteUrl } from '@/lib/config';
 import { matchPathWithCode } from '@/lib/guestRoutes';
 import { setGuestInviteContext } from '@/lib/storage/guestInvite';
 import {
+  addMatchOrganizer,
   getInviteByCode,
   getMatchDetail,
   getMatchTeaser,
@@ -23,6 +24,7 @@ import {
   joinMatchAsGuest,
   leaveMatch,
   normalizeInviteIndexId,
+  removeMatchOrganizer,
   removeParticipant,
   toggleParticipantPaid,
   updateParticipantStatus,
@@ -35,9 +37,9 @@ import {
 } from '@/lib/storage/guestParticipant';
 
 export function useMatchDetail(matchId: string, inviteCode?: string) {
-  const { user, apiSessionReady } = useAuth();
+  const { user, loading: authLoading, apiSessionReady } = useAuth();
   const codeNorm = inviteCode ? normalizeInviteIndexId(inviteCode) : '';
-  const isGuestViewer = !user;
+  const isGuestViewer = !authLoading && !user;
 
   const [match, setMatch] = useState<Match | null>(null);
   const [doc, setDoc] = useState<MatchDocument | null>(null);
@@ -56,6 +58,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const [error, setError] = useState('');
   const [shareFeedback, setShareFeedback] = useState('');
   const [canSeeParticipantNames, setCanSeeParticipantNames] = useState(false);
+  const [managing, setManaging] = useState(false);
 
   useEffect(() => {
     setLocalGuest(getGuestParticipant(matchId));
@@ -238,10 +241,77 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     }
     const p = participants.find((x) => x.id === participantId);
     if (!p) return;
-    await toggleParticipantPaid(matchId, participantId, !p.isPaid);
-    await load();
+    setManaging(true);
+    try {
+      await toggleParticipantPaid(matchId, participantId, !p.isPaid);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao atualizar pagamento');
+    } finally {
+      setManaging(false);
+    }
   };
 
+  const handleMoveParticipant = async (participantId: string, status: ParticipantStatus) => {
+    if (!isOrganizer) return;
+    setManaging(true);
+    setError('');
+    try {
+      await updateParticipantStatus(matchId, participantId, status);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao mover jogador');
+      throw e;
+    } finally {
+      setManaging(false);
+    }
+  };
+
+  const handleRemoveParticipant = async (participantId: string) => {
+    if (!isOrganizer) return;
+    setManaging(true);
+    setError('');
+    try {
+      await removeParticipant(matchId, participantId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao remover jogador');
+      throw e;
+    } finally {
+      setManaging(false);
+    }
+  };
+
+  const handleAddOrganizer = async (userId: string) => {
+    if (!isOrganizer) return;
+    setManaging(true);
+    setError('');
+    try {
+      await addMatchOrganizer(matchId, userId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao adicionar admin');
+      throw e;
+    } finally {
+      setManaging(false);
+    }
+  };
+
+  const handleRemoveOrganizer = async (userId: string) => {
+    if (!isOrganizer) return;
+    setManaging(true);
+    setError('');
+    try {
+      await removeMatchOrganizer(matchId, userId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao remover admin');
+    } finally {
+      setManaging(false);
+    }
+  };
+
+  const organizerUids = doc?.organizers ?? [];
   const copyText = async (text: string, feedback: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -332,6 +402,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     handleApproveParticipant,
     handleRejectParticipant,
     handleTogglePaid,
+    handleMoveParticipant,
+    handleRemoveParticipant,
+    handleAddOrganizer,
+    handleRemoveOrganizer,
+    organizerUids,
+    managing,
     reload: load,
   };
 }

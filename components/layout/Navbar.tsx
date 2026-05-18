@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Compass, Home, User } from 'lucide-react';
 
+import { useAuth } from '@/lib/auth/context';
 import { getGuestInviteContext } from '@/lib/storage/guestInvite';
 import { matchPathWithCode } from '@/lib/guestRoutes';
 
@@ -13,16 +14,14 @@ const AUTH_LINKS = [
   { href: '/profile', label: 'Perfil', Icon: User },
 ] as const;
 
-function Logo({ compact = false }: { compact?: boolean }) {
+function Logo({ showWordmark = true }: { showWordmark?: boolean }) {
   return (
     <>
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#BFFF00] text-sm font-black text-black">
         B
       </span>
-      {!compact && (
-        <span className="hidden text-sm font-extrabold tracking-widest text-[#BFFF00] min-[380px]:inline">
-          BORAPLAY
-        </span>
+      {showWordmark && (
+        <span className="text-sm font-extrabold tracking-widest text-[#BFFF00]">BORAPLAY</span>
       )}
     </>
   );
@@ -30,13 +29,15 @@ function Logo({ compact = false }: { compact?: boolean }) {
 
 export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const showGuestNav = guestMode && !user;
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
 
-  if (guestMode) {
+  if (showGuestNav) {
     const invite = getGuestInviteContext();
     const homeHref = invite ? matchPathWithCode(invite.matchId, invite.code) : pathname;
 
@@ -66,7 +67,6 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3.5 lg:gap-8">
           <Link href="/" className="mr-auto flex shrink-0 items-center gap-2.5">
             <Logo />
-            <span className="text-sm font-extrabold tracking-widest text-[#BFFF00]">BORAPLAY</span>
           </Link>
 
           <nav className="flex items-center gap-1">
@@ -100,7 +100,6 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
         <div className="flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <Logo />
-            <span className="text-sm font-extrabold tracking-widest text-[#BFFF00]">BORAPLAY</span>
           </Link>
         </div>
       </header>

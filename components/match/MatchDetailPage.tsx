@@ -12,6 +12,7 @@ import {
   PlayerSection,
   sectionAccent,
 } from '@/components/match/MatchDetailSections';
+import { ParticipantManageSheet } from '@/components/match/ParticipantManageSheet';
 import { useMatchDetail } from '@/lib/hooks/useMatchDetail';
 import { useAuth } from '@/lib/auth/context';
 import type { MatchDocument } from '@/lib/models/match-document';
@@ -353,6 +354,25 @@ function PlayersTab({
   vm: ReturnType<typeof useMatchDetail>;
   userId?: string;
 }) {
+  const [manageId, setManageId] = useState<string | null>(null);
+  const managedPlayer = manageId
+    ? vm.participants.find((p) => p.id === manageId) ?? null
+    : null;
+
+  const managedIsAdmin =
+    !!managedPlayer?.uid && vm.organizerUids.includes(managedPlayer.uid);
+  const managedCanPromote =
+    !!managedPlayer?.uid && !managedIsAdmin;
+  const managedCanDemote = managedIsAdmin && vm.organizerUids.length > 1;
+
+  const playerSectionProps = {
+    isOrganizer: vm.isOrganizer,
+    currentUserId: userId,
+    onTogglePaid: (id: string) => void vm.handleTogglePaid(id),
+    onManagePlayer: vm.isOrganizer ? (id: string) => setManageId(id) : undefined,
+    organizerUids: vm.organizerUids,
+  };
+
   if (vm.isGuestViewer && !vm.canSeeParticipantNames) {
     return (
       <div>
@@ -385,6 +405,40 @@ function PlayersTab({
 
   return (
     <div>
+      <ParticipantManageSheet
+        open={!!managedPlayer}
+        player={managedPlayer}
+        currentStatus={managedPlayer?.status ?? null}
+        onClose={() => setManageId(null)}
+        busy={vm.managing}
+        showAdminControls={vm.isOrganizer}
+        isAdmin={managedIsAdmin}
+        canPromoteAdmin={managedCanPromote}
+        canDemoteAdmin={managedCanDemote}
+        onMoveStatus={(status) => {
+          if (!managedPlayer) return;
+          void vm.handleMoveParticipant(managedPlayer.id, status).then(() => setManageId(null));
+        }}
+        onTogglePaid={() => {
+          if (!managedPlayer) return;
+          void vm.handleTogglePaid(managedPlayer.id);
+        }}
+        onPromoteAdmin={() => {
+          if (!managedPlayer?.uid) return;
+          void vm.handleAddOrganizer(managedPlayer.uid);
+        }}
+        onDemoteAdmin={() => {
+          if (!managedPlayer?.uid) return;
+          void vm.handleRemoveOrganizer(managedPlayer.uid);
+        }}
+        onRemove={() => {
+          if (!managedPlayer) return;
+          void vm.handleRemoveParticipant(managedPlayer.id).then(() => setManageId(null));
+        }}
+      />
+
+      {vm.error && <p className="mb-4 text-sm text-red-400">{vm.error}</p>}
+
       {vm.canShare && (
         <div className="mb-6 flex flex-wrap gap-3">
           <button
@@ -417,33 +471,25 @@ function PlayersTab({
         title="DENTRO"
         players={vm.dentroList}
         accent={sectionAccent('dentro')}
-        isOrganizer={vm.isOrganizer}
-        currentUserId={userId}
-        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+        {...playerSectionProps}
       />
       <PlayerSection
         title="LISTA DE ESPERA"
         players={vm.esperaList}
         accent={sectionAccent('lista-espera')}
-        isOrganizer={vm.isOrganizer}
-        currentUserId={userId}
-        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+        {...playerSectionProps}
       />
       <PlayerSection
         title="FORA"
         players={vm.foraList}
         accent={sectionAccent('fora')}
-        isOrganizer={vm.isOrganizer}
-        currentUserId={userId}
-        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+        {...playerSectionProps}
       />
       <PlayerSection
         title="CONVIDADOS"
         players={vm.convidadoList}
         accent={sectionAccent('convidado')}
-        isOrganizer={vm.isOrganizer}
-        currentUserId={userId}
-        onTogglePaid={(id) => void vm.handleTogglePaid(id)}
+        {...playerSectionProps}
       />
 
       {empty && <p className="py-8 text-center text-[#888]">Nenhum jogador ainda.</p>}
