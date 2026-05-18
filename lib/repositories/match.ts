@@ -6,9 +6,20 @@ import type {
   MatchDetailResponseDto,
   PaginatedMatchesDto,
   ParticipantDto,
+  UpdateMatchPayload,
 } from '@/lib/api/types/match';
 import type { CreateMatchForm } from '@/lib/models/match';
 import type { ParticipantStatus } from '@/lib/models/match-document';
+
+export async function updateMatch(
+  matchId: string,
+  body: UpdateMatchPayload,
+): Promise<MatchDetailResponseDto> {
+  return api<MatchDetailResponseDto>(`/matches/${matchId}`, {
+    method: 'PATCH',
+    body,
+  });
+}
 
 export async function createMatch(form: CreateMatchForm): Promise<string> {
   const res = await api<CreateMatchResponseDto>('/matches', {

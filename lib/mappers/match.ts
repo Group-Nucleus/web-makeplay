@@ -75,7 +75,7 @@ export function matchDocumentFromApiDetail(detail: MatchDetailResponseDto): Matc
     sport: m.sport,
     name: m.name,
     location: m.location,
-    venueId: undefined,
+    venueId: m.venueId ?? undefined,
     day: m.day,
     startTime: m.startTime,
     duration: m.duration,

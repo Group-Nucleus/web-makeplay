@@ -7,6 +7,7 @@ export interface MatchListItemDto {
   name: string;
   sport: SportType;
   location: string;
+  venueId?: string | null;
   day: string;
   startTime: string;
   duration: string;
@@ -94,4 +95,27 @@ export interface PaginatedMatchesDto {
 export interface CreateMatchResponseDto {
   id: string;
   inviteCode: string;
+}
+
+/** Body parcial para PATCH /matches/:id */
+export interface UpdateMatchPayload {
+  type?: MatchType;
+  sport?: SportType;
+  name?: string;
+  location?: string;
+  venueId?: string | null;
+  day?: string;
+  startTime?: string;
+  duration?: string;
+  gameType?: string;
+  spots?: number;
+  pricePerGame?: number;
+  priceMonthly?: number;
+  intensity?: string;
+  ageMin?: number;
+  ageMax?: number;
+  privacy?: MatchPrivacy;
+  hideFromAbsent?: boolean;
+  hidePhoneNumber?: boolean;
+  description?: string | null;
 }

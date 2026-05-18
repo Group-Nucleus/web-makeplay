@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Clock, Copy, Link2, MapPin, Share2, User } from 'lucide-react';
+import { Calendar, Clock, Copy, Link2, MapPin, Pencil, Share2, User } from 'lucide-react';
 import { useState } from 'react';
 
+import { EditMatchModal } from '@/components/match/EditMatchModal';
 import { GuestJoinModal } from '@/components/match/GuestJoinModal';
 import {
   AttendanceProgress,
@@ -40,6 +41,7 @@ export function MatchDetailPage({
   const vm = useMatchDetail(matchId, inviteCode);
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('INFO');
+  const [editOpen, setEditOpen] = useState(false);
 
   if (vm.loading) {
     return (
@@ -82,6 +84,20 @@ export function MatchDetailPage({
         onSubmit={vm.handleGuestJoin}
       />
 
+      {doc && (
+        <EditMatchModal
+          open={editOpen}
+          matchId={matchId}
+          doc={doc}
+          confirmedCount={vm.confirmed}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false);
+            void vm.reload();
+          }}
+        />
+      )}
+
       {vm.shareFeedback && (
         <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-[200] max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full bg-[#BFFF00] px-4 py-2 text-center text-sm font-bold text-black shadow-lg md:bottom-6">
           {vm.shareFeedback}
@@ -101,6 +117,17 @@ export function MatchDetailPage({
               </div>
             </div>
             <JoinActions vm={vm} hasUser={!!user} canInvite={canInvite} />
+            {vm.isOrganizer && (
+              <div className="px-4 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#333] py-2.5 text-sm font-bold text-white hover:border-[#555]">
+                  <Pencil className="h-4 w-4 text-[#BFFF00]" />
+                  EDITAR PARTIDA
+                </button>
+              </div>
+            )}
             <MatchMeta
               match={match}
               organizerName={vm.organizerName}
@@ -114,7 +141,7 @@ export function MatchDetailPage({
         <main className="min-w-0 flex-1">
           <TabBar tab={tab} setTab={setTab} />
           {tab === 'INFO' && (
-            <InfoTab vm={vm} organizerUid={vm.organizerUid} />
+            <InfoTab vm={vm} organizerUid={vm.organizerUid} userId={user?.uid} />
           )}
           {tab === 'JOGADORES' && (
             <PlayersTab vm={vm} userId={user?.uid} />
@@ -311,9 +338,11 @@ function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 function InfoTab({
   vm,
   organizerUid,
+  userId,
 }: {
   vm: ReturnType<typeof useMatchDetail>;
   organizerUid?: string;
+  userId?: string;
 }) {
   return (
   <div>
@@ -342,6 +371,9 @@ function InfoTab({
       players={vm.dentroList}
       canSeeNames={vm.canSeeParticipantNames}
       organizerUid={organizerUid}
+      isOrganizerViewer={vm.isOrganizer}
+      currentUserId={userId}
+      viewerParticipantId={vm.viewerParticipantId}
     />
   </div>
   );
@@ -368,6 +400,7 @@ function PlayersTab({
   const playerSectionProps = {
     isOrganizer: vm.isOrganizer,
     currentUserId: userId,
+    viewerParticipantId: vm.viewerParticipantId,
     onTogglePaid: (id: string) => void vm.handleTogglePaid(id),
     onManagePlayer: vm.isOrganizer ? (id: string) => setManageId(id) : undefined,
     organizerUids: vm.organizerUids,

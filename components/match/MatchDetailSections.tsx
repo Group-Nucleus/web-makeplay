@@ -103,12 +103,14 @@ export function PlayerSection({
   onTogglePaid,
   onManagePlayer,
   organizerUids = [],
+  viewerParticipantId,
 }: {
   title: string;
   players: ParticipantDocument[];
   accent: string;
   isOrganizer: boolean;
   currentUserId?: string;
+  viewerParticipantId?: string | null;
   onTogglePaid: (id: string) => void;
   onManagePlayer?: (id: string) => void;
   organizerUids?: string[];
@@ -122,14 +124,23 @@ export function PlayerSection({
       {players.map((p) => {
         const canSeePaid = isOrganizer || p.uid === currentUserId;
         const isAdmin = !!p.uid && organizerUids.includes(p.uid);
+        const isSelf = isViewerSelfInList(
+          p,
+          isOrganizer,
+          currentUserId,
+          viewerParticipantId,
+        );
         return (
           <div
             key={p.id}
-            className="flex items-center gap-3 rounded-lg bg-[#141414] px-3 py-2.5">
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+              isSelf ? SELF_ROW_CLASS : 'bg-[#141414]'
+            }`}>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold text-white">
               {initials(p.name)}
             </div>
             <div className="min-w-0 flex-1">
+              {isSelf && <ViewerSelfLabel className="mb-0.5 block" />}
               <p className="truncate text-sm font-medium text-white">{p.name}</p>
               <div className="flex flex-wrap items-center gap-1.5">
                 {p.position && <p className="text-[10px] text-[#888]">{p.position}</p>}
@@ -200,6 +211,39 @@ function initials(name: string) {
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
+function isViewerParticipant(
+  p: ParticipantDocument,
+  opts: { currentUserId?: string; viewerParticipantId?: string | null },
+) {
+  if (opts.viewerParticipantId && p.id === opts.viewerParticipantId) return true;
+  if (opts.currentUserId && p.uid === opts.currentUserId) return true;
+  return false;
+}
+
+/** Participante na lista que é o utilizador atual (não organizador). */
+function isViewerSelfInList(
+  p: ParticipantDocument,
+  isOrganizerViewer: boolean,
+  currentUserId?: string,
+  viewerParticipantId?: string | null,
+) {
+  return !isOrganizerViewer && isViewerParticipant(p, { currentUserId, viewerParticipantId });
+}
+
+const SELF_ROW_CLASS =
+  'border border-[#BFFF00]/45 bg-[#141414] ring-1 ring-[#BFFF00]/20';
+const SELF_SLOT_CLASS =
+  'border border-[#BFFF00]/50 bg-[#1A1A1A] ring-1 ring-[#BFFF00]/25';
+
+function ViewerSelfLabel({ className = '' }: { className?: string }) {
+  return (
+    <span
+      className={`text-[9px] font-bold uppercase tracking-wide text-[#9A9A9A] ${className}`}>
+      Você
+    </span>
+  );
+}
+
 /** Grelha de vagas: convidados sem conta veem vagas ocupadas sem nomes. */
 export function MatchSlotsGrid({
   spots,
@@ -207,12 +251,18 @@ export function MatchSlotsGrid({
   players,
   canSeeNames,
   organizerUid,
+  isOrganizerViewer = false,
+  currentUserId,
+  viewerParticipantId,
 }: {
   spots: number;
   filledCount: number;
   players: ParticipantDocument[];
   canSeeNames: boolean;
   organizerUid?: string;
+  isOrganizerViewer?: boolean;
+  currentUserId?: string;
+  viewerParticipantId?: string | null;
 }) {
   const freeCount = Math.max(0, spots - filledCount);
 
@@ -224,16 +274,26 @@ export function MatchSlotsGrid({
       <div className={slotGridClass}>
         {players.map((p) => {
           const isOrg = organizerUid && p.uid === organizerUid;
+          const isSelf = isViewerSelfInList(
+            p,
+            isOrganizerViewer,
+            currentUserId,
+            viewerParticipantId,
+          );
           return (
             <div
               key={p.id}
-              className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-[#333] bg-[#1A1A1A] p-2">
-              <div
-                className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold ${
-                  isOrg ? 'ring-2 ring-[#BFFF00]' : ''
-                }`}>
+              className={`flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl p-2 ${
+                isSelf
+                  ? SELF_SLOT_CLASS
+                  : isOrg
+                    ? 'border border-[#333] bg-[#1A1A1A] ring-2 ring-[#BFFF00]/40'
+                    : 'border border-[#333] bg-[#1A1A1A]'
+              }`}>
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold text-white">
                 {initials(p.name)}
               </div>
+              {isSelf && <ViewerSelfLabel className="mb-1" />}
               {isOrg && (
                 <span className="mb-1 text-[9px] font-bold text-[#BFFF00]">ORGANIZADOR</span>
               )}

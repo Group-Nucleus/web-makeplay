@@ -140,6 +140,8 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const myStatus: ParticipantStatus | null =
     viewerFlags.myStatus ?? localGuest?.status ?? null;
   const isOrganizer = viewerFlags.isOrganizer;
+  const viewerParticipantId =
+    viewerFlags.myParticipantId ?? localGuest?.participantId ?? null;
   const organizerUid = doc?.organizers?.[0] ?? doc?.createdBy;
   const isJoined =
     viewerFlags.isParticipant || localGuest !== null || isOrganizer;
@@ -383,6 +385,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     isPendingApproval,
     viewerJoined,
     isOrganizer,
+    viewerParticipantId,
     organizerUid,
     spots,
     confirmed,

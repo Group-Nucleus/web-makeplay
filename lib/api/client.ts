@@ -56,5 +56,7 @@ export async function api<T>(path: string, options: ApiRequestOptions = {}): Pro
     }
     throw new ApiError(res.status, code, message);
   }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
