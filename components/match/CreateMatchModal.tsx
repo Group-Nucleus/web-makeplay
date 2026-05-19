@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { CreateVenueModal } from '@/components/venue/CreateVenueModal';
 import { VenuePickerSheet } from '@/components/venue/VenuePickerSheet';
 import { Field, inputClass } from '@/components/ui/Field';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { useCreateMatch } from '@/lib/hooks/useCreateMatch';
 import type { CreateMatchResult } from '@/lib/repositories/match';
 import type { MatchType, MatchPrivacy, SportType, Venue } from '@/lib/models/match';
@@ -187,12 +188,10 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                 </>
               )}
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Dia (DD/MM/AAAA)" error={vm.errors.day}>
-                  <input
-                    className={inputClass}
+                <Field label="Dia" error={vm.errors.day}>
+                  <DatePicker
                     value={vm.form.day}
-                    onChange={(e) => vm.setField('day', e.target.value)}
-                    placeholder="28/05/2026"
+                    onChange={(v) => vm.setField('day', v)}
                   />
                 </Field>
                 <Field label="Horário" error={vm.errors.startTime}>
