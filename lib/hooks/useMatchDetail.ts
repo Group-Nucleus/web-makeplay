@@ -219,11 +219,15 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const viewerJoined = isJoined && !isPendingApproval;
 
   const sortOrganizerFirst = <T extends { uid: string | null }>(list: T[]) => {
-    if (!organizerUid) return list;
+    const creatorUid = doc?.createdBy;
+    const adminSet = new Set(organizerUids);
     return [...list].sort((a, b) => {
-      const aOrg = a.uid === organizerUid ? 0 : 1;
-      const bOrg = b.uid === organizerUid ? 0 : 1;
-      return aOrg - bOrg;
+      const score = (uid: string | null): number => {
+        if (creatorUid && uid === creatorUid) return 0;
+        if (uid && adminSet.has(uid)) return 1;
+        return 2;
+      };
+      return score(a.uid) - score(b.uid);
     });
   };
   const canGuestJoin = canGuestJoinWithInvite({
