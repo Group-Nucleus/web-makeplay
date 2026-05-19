@@ -49,13 +49,13 @@ export function ParticipantManageSheet({
         aria-label="Fechar"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-[#333] bg-[#141414] p-5 sm:rounded-2xl">
+      <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-line bg-[#141414] p-5 sm:rounded-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold tracking-wider text-[#888]">GERIR JOGADOR</p>
+            <p className="text-xs font-bold tracking-wider text-muted">GERIR JOGADOR</p>
             <h3 className="truncate text-lg font-bold text-white">{player.name}</h3>
             {currentStatus && (
-              <p className="mt-1 text-sm text-[#888]">
+              <p className="mt-1 text-sm text-muted">
                 Status atual: {PARTICIPANT_STATUS_LABEL[currentStatus]}
               </p>
             )}
@@ -63,12 +63,12 @@ export function ParticipantManageSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2a2a2a] text-[#888]">
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-elevated text-muted">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="mb-2 text-xs font-bold tracking-wider text-[#888]">MOVER PARA</p>
+        <p className="mb-2 text-xs font-bold tracking-wider text-muted">MOVER PARA</p>
         <div className="mb-5 grid grid-cols-2 gap-2">
           {ORGANIZER_MOVABLE_STATUSES.map((status) => (
             <button
@@ -78,8 +78,8 @@ export function ParticipantManageSheet({
               onClick={() => onMoveStatus(status)}
               className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
                 currentStatus === status
-                  ? 'border-[#BFFF00] bg-[#BFFF00]/15 text-[#BFFF00]'
-                  : 'border-[#333] text-white hover:border-[#555]'
+                  ? 'border-lime bg-lime/15 text-lime'
+                  : 'border-line text-white hover:border-[#555]'
               }`}>
               {PARTICIPANT_STATUS_LABEL[status]}
             </button>
@@ -92,27 +92,27 @@ export function ParticipantManageSheet({
           onClick={onTogglePaid}
           className={`mb-3 w-full rounded-lg py-3 text-sm font-bold ${
             player.isPaid
-              ? 'border border-[#BFFF00] text-[#BFFF00]'
-              : 'bg-[#BFFF00] text-black'
+              ? 'border border-lime text-lime'
+              : 'bg-lime text-black'
           } disabled:opacity-50`}>
           {player.isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
         </button>
 
         {showAdminControls && (
           <div className="mb-3">
-            <p className="mb-2 text-xs font-bold tracking-wider text-[#888]">ADMIN</p>
+            <p className="mb-2 text-xs font-bold tracking-wider text-muted">ADMIN</p>
             {isAdmin ? (
               canDemoteAdmin ? (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={onDemoteAdmin}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#888]/50 py-3 text-sm font-bold text-[#ccc] disabled:opacity-50">
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-muted/50 py-3 text-sm font-bold text-dim disabled:opacity-50">
                   <ShieldOff className="h-4 w-4" />
                   Remover como admin
                 </button>
               ) : (
-                <p className="rounded-lg border border-[#333] bg-[#1A1A1A] px-3 py-2.5 text-center text-xs text-[#888]">
+                <p className="rounded-lg border border-line bg-card px-3 py-2.5 text-center text-xs text-muted">
                   Este jogador é admin da partida
                 </p>
               )
@@ -121,7 +121,7 @@ export function ParticipantManageSheet({
                 type="button"
                 disabled={busy}
                 onClick={onPromoteAdmin}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#BFFF00] py-3 text-sm font-bold text-[#BFFF00] disabled:opacity-50">
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-lime py-3 text-sm font-bold text-lime disabled:opacity-50">
                 <Shield className="h-4 w-4" />
                 Tornar admin
               </button>
@@ -137,7 +137,7 @@ export function ParticipantManageSheet({
           type="button"
           disabled={busy}
           onClick={onRemove}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#FF4136]/50 py-3 text-sm font-bold text-[#FF4136] disabled:opacity-50">
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-danger/50 py-3 text-sm font-bold text-danger disabled:opacity-50">
           <Trash2 className="h-4 w-4" />
           Remover da partida
         </button>

@@ -51,7 +51,7 @@ export function LoginPage() {
   if (redirecting) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-lime border-t-transparent" />
       </div>
     );
   }
@@ -60,14 +60,14 @@ export function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-black px-6">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#BFFF00] text-lg font-black text-black">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-lime text-lg font-black text-black">
             B
           </span>
-          <span className="text-xl font-extrabold tracking-widest text-[#BFFF00]">BORAPLAY</span>
+          <span className="text-xl font-extrabold tracking-widest text-lime">BORAPLAY</span>
         </div>
 
         <h1 className="mb-2 text-2xl font-bold text-white">Bem-vindo de volta</h1>
-        <p className="mb-8 text-sm text-[#888]">
+        <p className="mb-8 text-sm text-muted">
           Entra com Google ou com telefone e senha da tua conta.
         </p>
 
@@ -75,7 +75,7 @@ export function LoginPage() {
           type="button"
           onClick={() => void handleGoogle()}
           disabled={googleLoading || submitting}
-          className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border border-[#333] bg-white py-3.5 text-sm font-semibold text-black disabled:opacity-60">
+          className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-white py-3.5 text-sm font-semibold text-black disabled:opacity-60">
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
@@ -99,16 +99,16 @@ export function LoginPage() {
 
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[#333]" />
+            <div className="w-full border-t border-line" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-black px-2 text-[#888]">ou</span>
+            <span className="bg-black px-2 text-muted">ou</span>
           </div>
         </div>
 
         <form onSubmit={(e) => void handlePhoneSubmit(e)} className="space-y-4">
           <div>
-            <label className="mb-2 block text-xs font-bold tracking-wider text-[#888]">
+            <label className="mb-2 block text-xs font-bold tracking-wider text-muted">
               TELEFONE
             </label>
             <input
@@ -121,7 +121,7 @@ export function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold tracking-wider text-[#888]">
+            <label className="mb-2 block text-xs font-bold tracking-wider text-muted">
               SENHA
             </label>
             <input
@@ -136,7 +136,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={submitting || googleLoading}
-            className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black disabled:opacity-60">
+            className="w-full rounded-xl bg-lime py-3.5 text-sm font-bold text-black disabled:opacity-60">
             {submitting ? 'A entrar...' : 'ENTRAR COM TELEFONE'}
           </button>
         </form>

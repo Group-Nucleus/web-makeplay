@@ -5,6 +5,11 @@
   --foreground: #ffffff;
   --lime: #bfff00;
   --card: #1a1a1a;
+  --danger: #ff4136;
+  --muted: #888888;
+  --dim: #cccccc;
+  --elevated: #2a2a2a;
+  --line: #333333;
 }
 
 @theme inline {
@@ -12,6 +17,11 @@
   --color-foreground: var(--foreground);
   --color-lime: var(--lime);
   --color-card: var(--card);
+  --color-danger: var(--danger);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-elevated: var(--elevated);
+  --color-line: var(--line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

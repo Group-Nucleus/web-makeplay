@@ -1,6 +1,6 @@
-import { SeriesDetailPage } from '@/components/match/SeriesDetailPage';
+import { SeriesDetailPage } from './SeriesDetailPage';
 
-export default async function SeriesPage({
+export default async function Page({
   params,
   searchParams,
 }: {

@@ -28,22 +28,22 @@ export function AttendanceProgress({
   progressPercent: number;
 }) {
   return (
-    <div className="mb-6 rounded-xl border border-[#2a2a2a] bg-[#1A1A1A] p-4">
+    <div className="mb-6 rounded-xl border border-elevated bg-card p-4">
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <p className="text-lg font-extrabold text-white">
-          {confirmed} <span className="text-xs font-bold text-[#888]">CONFIRMADOS</span>
+          {confirmed} <span className="text-xs font-bold text-muted">CONFIRMADOS</span>
         </p>
         <p className="text-lg font-extrabold text-white">
-          {remaining} <span className="text-xs font-bold text-[#888]">VAGAS</span>
+          {remaining} <span className="text-xs font-bold text-muted">VAGAS</span>
         </p>
       </div>
-      <div className="mb-2 h-2 overflow-hidden rounded-full bg-[#333]">
+      <div className="mb-2 h-2 overflow-hidden rounded-full bg-line">
         <div
-          className="h-full rounded-full bg-[#BFFF00] transition-all duration-300"
+          className="h-full rounded-full bg-lime transition-all duration-300"
           style={{ width: `${Math.min(100, progressPercent)}%` }}
         />
       </div>
-      <p className="text-xs text-[#888]">
+      <p className="text-xs text-muted">
         Capacidade: {spots} jogadores · {confirmed} confirmados
       </p>
     </div>
@@ -70,21 +70,21 @@ export function PendingSection({
         <div
           key={p.id}
           className="flex items-center gap-3 rounded-lg bg-[#141414] px-3 py-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a2a2a]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-elevated">
             <User className="h-4 w-4 text-[#666]" />
           </div>
           <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">{p.name}</p>
           <button
             type="button"
             onClick={() => onReject(p.id)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#FF4136]/40 text-[#FF4136]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-danger/40 text-danger"
             aria-label="Recusar">
             <X className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => onApprove(p.id)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#BFFF00] text-black"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime text-black"
             aria-label="Aprovar">
             <Check className="h-4 w-4" />
           </button>
@@ -136,16 +136,16 @@ export function PlayerSection({
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
               isSelf ? SELF_ROW_CLASS : 'bg-[#141414]'
             }`}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-elevated text-xs font-bold text-white">
               {initials(p.name)}
             </div>
             <div className="min-w-0 flex-1">
               {isSelf && <ViewerSelfLabel className="mb-0.5 block" />}
               <p className="truncate text-sm font-medium text-white">{p.name}</p>
               <div className="flex flex-wrap items-center gap-1.5">
-                {p.position && <p className="text-[10px] text-[#888]">{p.position}</p>}
+                {p.position && <p className="text-[10px] text-muted">{p.position}</p>}
                 {isAdmin && (
-                  <span className="text-[9px] font-bold uppercase text-[#BFFF00]">Admin</span>
+                  <span className="text-[9px] font-bold uppercase text-lime">Admin</span>
                 )}
               </div>
             </div>
@@ -156,8 +156,8 @@ export function PlayerSection({
                 onClick={() => canSeePaid && onTogglePaid(p.id)}
                 className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${
                   p.isPaid
-                    ? 'bg-[#BFFF00]/20 text-[#BFFF00]'
-                    : 'bg-[#333] text-[#666]'
+                    ? 'bg-lime/20 text-lime'
+                    : 'bg-line text-[#666]'
                 } ${!canSeePaid ? 'cursor-default opacity-50' : ''}`}>
                 {p.isPaid ? 'Pago' : 'Pendente'}
               </button>
@@ -166,7 +166,7 @@ export function PlayerSection({
               <button
                 type="button"
                 onClick={() => onManagePlayer(p.id)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#333] text-[#888] hover:text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-muted hover:text-white"
                 aria-label={`Gerir ${p.name}`}>
                 <MoreVertical className="h-4 w-4" />
               </button>
@@ -231,9 +231,9 @@ function isViewerSelfInList(
 }
 
 const SELF_ROW_CLASS =
-  'border border-[#BFFF00]/45 bg-[#141414] ring-1 ring-[#BFFF00]/20';
+  'border border-lime/45 bg-[#141414] ring-1 ring-[#BFFF00]/20';
 const SELF_SLOT_CLASS =
-  'border border-[#BFFF00]/50 bg-[#1A1A1A] ring-1 ring-[#BFFF00]/25';
+  'border border-lime/50 bg-card ring-1 ring-[#BFFF00]/25';
 
 function ViewerSelfLabel({ className = '' }: { className?: string }) {
   return (
@@ -287,15 +287,15 @@ export function MatchSlotsGrid({
                 isSelf
                   ? SELF_SLOT_CLASS
                   : isOrg
-                    ? 'border border-[#333] bg-[#1A1A1A] ring-2 ring-[#BFFF00]/40'
-                    : 'border border-[#333] bg-[#1A1A1A]'
+                    ? 'border border-line bg-card ring-2 ring-[#BFFF00]/40'
+                    : 'border border-line bg-card'
               }`}>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a] text-xs font-bold text-white">
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-elevated text-xs font-bold text-white">
                 {initials(p.name)}
               </div>
               {isSelf && <ViewerSelfLabel className="mb-1" />}
               {isOrg && (
-                <span className="mb-1 text-[9px] font-bold text-[#BFFF00]">ORGANIZADOR</span>
+                <span className="mb-1 text-[9px] font-bold text-lime">ORGANIZADOR</span>
               )}
               <p className="truncate text-center text-xs font-semibold text-white">{p.name}</p>
               <p className="text-[10px] font-bold text-[#666]">CONFIRMADO</p>
@@ -323,7 +323,7 @@ export function MatchSlotsGrid({
 
 function EmptySlot() {
   return (
-    <div className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-dashed border-[#333] bg-[#1A1A1A] p-2">
+    <div className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-dashed border-line bg-card p-2">
       <p className="text-center text-[10px] font-bold text-[#666]">VAGA LIVRE</p>
     </div>
   );
@@ -332,10 +332,10 @@ function EmptySlot() {
 function OccupiedSlot() {
   return (
     <div className="flex min-h-[118px] min-w-0 flex-col items-center justify-center rounded-xl border border-[#444] bg-[#141414] p-2 opacity-80">
-      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#2a2a2a]">
+      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-elevated">
         <Lock className="h-4 w-4 text-[#666]" />
       </div>
-      <p className="text-center text-[10px] font-bold text-[#888]">OCUPADA</p>
+      <p className="text-center text-[10px] font-bold text-muted">OCUPADA</p>
     </div>
   );
 }

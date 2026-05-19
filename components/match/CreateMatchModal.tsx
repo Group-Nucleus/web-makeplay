@@ -86,13 +86,13 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
         onClose={() => setCreateVenueOpen(false)}
         onCreated={handleVenueCreated}
       />
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#0d0d0d]">
-        <header className="flex items-center gap-3 border-b border-[#2a2a2a] px-5 py-4">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-elevated bg-[#0d0d0d]">
+        <header className="flex items-center gap-3 border-b border-elevated px-5 py-4">
           {vm.step > 1 ? (
             <button
               type="button"
               onClick={() => (vm.step === 2 ? vm.goToStep1() : vm.goToStep2())}
-              className="text-[#888] hover:text-white">
+              className="text-muted hover:text-white">
               <ArrowLeft className="h-5 w-5" />
             </button>
           ) : (
@@ -101,7 +101,7 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
           <h2 className="flex-1 text-center text-sm font-bold tracking-wide text-white">
             {title} — passo {vm.step}/3
           </h2>
-          <button type="button" onClick={onClose} className="text-[#888] hover:text-white">
+          <button type="button" onClick={onClose} className="text-muted hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </header>
@@ -110,7 +110,7 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
           {vm.step === 1 && (
             <>
               <h3 className="mb-1 text-lg font-bold text-white">Qual esporte?</h3>
-              <p className="mb-5 text-sm text-[#888]">Escolhe o esporte da partida.</p>
+              <p className="mb-5 text-sm text-muted">Escolhe o esporte da partida.</p>
               <div className="grid grid-cols-2 gap-3">
                 {SPORTS.map((s) => (
                   <button
@@ -119,8 +119,8 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                     onClick={() => vm.setSport(s.id)}
                     className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors ${
                       vm.form.sport === s.id
-                        ? 'border-[#BFFF00] bg-[#BFFF00]/10'
-                        : 'border-[#333] bg-[#1A1A1A] hover:border-[#555]'
+                        ? 'border-lime bg-lime/10'
+                        : 'border-line bg-card hover:border-[#555]'
                     }`}>
                     <span className="text-3xl">{s.emoji}</span>
                     <span className="text-sm font-semibold text-white">{s.label}</span>
@@ -147,19 +147,19 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                 />
               </Field>
               {vm.selectedVenue ? (
-                <div className="mb-4 rounded-xl border border-[#333] bg-[#1A1A1A] p-4">
+                <div className="mb-4 rounded-xl border border-line bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 gap-3">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#BFFF00]" />
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
                       <div>
                         <p className="font-semibold text-white">{vm.selectedVenue.name}</p>
-                        <p className="truncate text-xs text-[#888]">{vm.selectedVenue.address}</p>
+                        <p className="truncate text-xs text-muted">{vm.selectedVenue.address}</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => vm.setVenue(null)}
-                      className="text-[#888] hover:text-white">
+                      className="text-muted hover:text-white">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -169,11 +169,11 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                   <button
                     type="button"
                     onClick={() => setVenuePickerOpen(true)}
-                    className="mb-4 w-full rounded-xl border border-[#333] bg-[#1A1A1A] px-4 py-3 text-left">
-                    <p className="mb-1 text-xs font-bold tracking-wider text-[#888]">QUADRA</p>
+                    className="mb-4 w-full rounded-xl border border-line bg-card px-4 py-3 text-left">
+                    <p className="mb-1 text-xs font-bold tracking-wider text-muted">QUADRA</p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-[#666]">Selecionar quadra</span>
-                      <MapPin className="h-4 w-4 text-[#BFFF00]" />
+                      <MapPin className="h-4 w-4 text-lime" />
                     </div>
                   </button>
                   <Field label="Local / endereço" error={vm.errors.location}>
@@ -289,7 +289,7 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                     max={59}
                     value={vm.form.ageMin}
                     onChange={(e) => vm.setField('ageMin', Number(e.target.value))}
-                    className="w-full accent-[#BFFF00]"
+                    className="w-full accent-lime"
                   />
                   <input
                     type="range"
@@ -297,14 +297,14 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                     max={60}
                     value={vm.form.ageMax}
                     onChange={(e) => vm.setField('ageMax', Number(e.target.value))}
-                    className="w-full accent-[#BFFF00]"
+                    className="w-full accent-lime"
                   />
                 </div>
                 {vm.errors.ageMax && (
                   <p className="mt-1 text-xs text-red-400">{vm.errors.ageMax}</p>
                 )}
               </Field>
-              <p className="mb-2 text-xs font-bold tracking-wider text-[#888]">PRIVACIDADE</p>
+              <p className="mb-2 text-xs font-bold tracking-wider text-muted">PRIVACIDADE</p>
               <div className="mb-4 grid grid-cols-2 gap-2">
                 {PRIVACY.map((p) => (
                   <button
@@ -313,12 +313,12 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                     onClick={() => vm.setPrivacy(p.value)}
                     className={`rounded-xl border-2 p-3 text-left transition-colors ${
                       vm.form.privacy === p.value
-                        ? 'border-[#BFFF00] bg-[#BFFF00]/10'
-                        : 'border-[#333] bg-[#1A1A1A]'
+                        ? 'border-lime bg-lime/10'
+                        : 'border-line bg-card'
                     }`}>
-                    <Globe className="mb-1 h-5 w-5 text-[#BFFF00]" />
+                    <Globe className="mb-1 h-5 w-5 text-lime" />
                     <span className="block text-xs font-bold text-white">{p.label}</span>
-                    {p.sub && <span className="text-[10px] text-[#888]">{p.sub}</span>}
+                    {p.sub && <span className="text-[10px] text-muted">{p.sub}</span>}
                   </button>
                 ))}
               </div>
@@ -327,9 +327,9 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                   type="checkbox"
                   checked={vm.form.hideFromAbsent}
                   onChange={(e) => vm.setField('hideFromAbsent', e.target.checked)}
-                  className="mt-1 accent-[#BFFF00]"
+                  className="mt-1 accent-lime"
                 />
-                <span className="text-xs text-[#888]">
+                <span className="text-xs text-muted">
                   Não exibir para jogadores que faltaram em jogos anteriores
                 </span>
               </label>
@@ -338,15 +338,15 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
                   type="checkbox"
                   checked={vm.form.hidePhoneNumber}
                   onChange={(e) => vm.setField('hidePhoneNumber', e.target.checked)}
-                  className="mt-1 accent-[#BFFF00]"
+                  className="mt-1 accent-lime"
                 />
-                <span className="text-xs text-[#888]">Ocultar meu telefone nesta partida</span>
+                <span className="text-xs text-muted">Ocultar meu telefone nesta partida</span>
               </label>
             </>
           )}
         </div>
 
-        <footer className="border-t border-[#2a2a2a] p-5">
+        <footer className="border-t border-elevated p-5">
           {vm.submitError && (
             <p className="mb-3 text-center text-sm text-red-400">{vm.submitError}</p>
           )}
@@ -354,7 +354,7 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
             <button
               type="button"
               onClick={vm.goToStep2}
-              className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black">
+              className="w-full rounded-xl bg-lime py-3.5 text-sm font-bold text-black">
               CONTINUAR
             </button>
           )}
@@ -362,7 +362,7 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
             <button
               type="button"
               onClick={vm.goToStep3}
-              className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black">
+              className="w-full rounded-xl bg-lime py-3.5 text-sm font-bold text-black">
               CONTINUAR
             </button>
           )}
@@ -371,7 +371,7 @@ export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
               type="button"
               onClick={vm.submit}
               disabled={vm.isSubmitting}
-              className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black disabled:opacity-60">
+              className="w-full rounded-xl bg-lime py-3.5 text-sm font-bold text-black disabled:opacity-60">
               {vm.isSubmitting
                 ? 'A CRIAR...'
                 : isWeekly

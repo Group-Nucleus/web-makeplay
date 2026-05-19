@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { MatchDetailSkeleton } from '@/components/ui/Skeleton';
 import {
   ChevronRight,
   Copy,
@@ -129,11 +130,7 @@ export function SeriesDetailPage({
   }, [vm.canManage, panel]);
 
   if (vm.loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center px-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
-      </div>
-    );
+    return <MatchDetailSkeleton />;
   }
 
   if (vm.accessBlocked || vm.error || !vm.match || !vm.doc) {
@@ -145,14 +142,14 @@ export function SeriesDetailPage({
             : vm.error || 'Pelada não encontrada'}
         </p>
         {vm.isGuestViewer ? (
-          <Link href="/login" className="text-sm font-bold text-[#BFFF00]">
+          <Link href="/login" className="text-sm font-bold text-lime">
             Entrar com conta
           </Link>
         ) : (
           <button
             type="button"
             onClick={() => router.push('/')}
-            className="text-sm font-bold text-[#BFFF00]">
+            className="text-sm font-bold text-lime">
             Voltar ao início
           </button>
         )}
@@ -200,17 +197,17 @@ export function SeriesDetailPage({
 
   const pastContent =
     pastOccurrences.length === 0 ? (
-      <p className="py-12 text-center text-sm text-[#888]">Ainda não há jogos passados.</p>
+      <p className="py-12 text-center text-sm text-muted">Ainda não há jogos passados.</p>
     ) : (
       <ul className="grid gap-2 sm:grid-cols-2">
         {pastOccurrences.map((o) => (
           <li key={o.id}>
             <Link
               href={matchPathWithCode(o.id, o.inviteCode)}
-              className="flex items-center justify-between rounded-xl bg-[#1A1A1A] px-4 py-3 hover:bg-[#222]">
+              className="flex items-center justify-between rounded-xl bg-card px-4 py-3 hover:bg-[#222]">
               <div>
                 <p className="font-medium text-white">{o.day}</p>
-                <p className="text-xs text-[#888]">{occurrenceStatusLabel(o.status)}</p>
+                <p className="text-xs text-muted">{occurrenceStatusLabel(o.status)}</p>
               </div>
               <ChevronRight className="h-4 w-4 text-[#666]" />
             </Link>
@@ -222,7 +219,7 @@ export function SeriesDetailPage({
   return (
     <div className="px-4 py-4 sm:px-6 sm:py-6">
       {vm.shareFeedback && (
-        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-[200] max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full bg-[#BFFF00] px-4 py-2 text-center text-sm font-bold text-black shadow-lg md:bottom-6">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-200 max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full bg-lime px-4 py-2 text-center text-sm font-bold text-black shadow-lg md:bottom-6">
           {vm.shareFeedback}
         </div>
       )}
@@ -231,13 +228,13 @@ export function SeriesDetailPage({
         {/* Coluna esquerda: identidade da pelada */}
         <aside className="w-full shrink-0 lg:w-[300px] xl:w-[320px]">
           <div className="lg:sticky lg:top-6">
-            <div className="rounded-2xl border border-[#2a2a2a] bg-[#121212] p-5">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-[#BFFF00]">
+            <div className="rounded-2xl border border-elevated bg-[#121212] p-5">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-lime">
                 Pelada fixa
               </p>
               <div className="mb-5 flex items-start gap-3">
                 <div
-                  className="h-16 w-16 shrink-0 rounded-xl bg-cover bg-center ring-1 ring-[#333]"
+                  className="h-16 w-16 shrink-0 rounded-xl bg-cover bg-center ring-1 ring-line"
                   style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}
                   role="img"
                   aria-label={match.title}
@@ -245,33 +242,33 @@ export function SeriesDetailPage({
                 <div className="min-w-0">
                   <h1 className="text-xl font-bold leading-tight text-white">{match.title}</h1>
                   {vm.organizerName && (
-                    <p className="mt-1 text-xs text-[#888]">Presidente: {vm.organizerName}</p>
+                    <p className="mt-1 text-xs text-muted">Presidente: {vm.organizerName}</p>
                   )}
                 </div>
               </div>
 
               <SeriesSidebarActions vm={vm} hasUser={!!user} />
 
-            <div className="mt-4 space-y-2 border-t border-[#2a2a2a] pt-4 text-sm">
+            <div className="mt-4 space-y-2 border-t border-elevated pt-4 text-sm">
               {match.location && (
-                <p className="text-[#888]">
+                <p className="text-muted">
                   {match.distance ? `${match.distance} • ` : ''}
                   {match.location}
                 </p>
               )}
-              <p className="text-[#888]">
+              <p className="text-muted">
                 Toda {doc.day} · {doc.startTime}
               </p>
               {vm.canManage && doc.inviteCode && (
                 <button
                   type="button"
                   onClick={() => void vm.handleCopyInviteCode()}
-                  className="flex w-full items-center gap-2 rounded-lg border border-[#333] bg-black px-3 py-2 text-left">
-                  <Link2 className="h-4 w-4 shrink-0 text-[#BFFF00]" />
-                  <span className="flex-1 font-mono text-sm font-bold tracking-widest text-[#BFFF00]">
+                  className="flex w-full items-center gap-2 rounded-lg border border-line bg-black px-3 py-2 text-left">
+                  <Link2 className="h-4 w-4 shrink-0 text-lime" />
+                  <span className="flex-1 font-mono text-sm font-bold tracking-widest text-lime">
                     {doc.inviteCode}
                   </span>
-                  <Copy className="h-4 w-4 shrink-0 text-[#BFFF00]" />
+                  <Copy className="h-4 w-4 shrink-0 text-lime" />
                 </button>
               )}
             </div>
@@ -280,7 +277,7 @@ export function SeriesDetailPage({
 
           {vm.isGuestViewer && (
             <p className="mt-4 text-center text-sm lg:text-left">
-              <Link href="/login" className="font-bold text-[#BFFF00]">
+              <Link href="/login" className="font-bold text-lime">
                 Entrar com conta
               </Link>{' '}
               para gerir a tua presença
@@ -294,7 +291,7 @@ export function SeriesDetailPage({
             <button
               type="button"
               onClick={() => setPanel('main')}
-              className="mb-4 text-sm font-semibold text-[#BFFF00] lg:hidden">
+              className="mb-4 text-sm font-semibold text-lime lg:hidden">
               ← Voltar
             </button>
           )}
@@ -315,7 +312,7 @@ export function SeriesDetailPage({
                 <div className="mb-6 hidden justify-end lg:flex">
                   <button
                     type="button"
-                    className="shrink-0 text-sm font-semibold text-[#BFFF00]"
+                    className="shrink-0 text-sm font-semibold text-lime"
                     onClick={() => void vm.handleShareInvite()}>
                     Editar
                   </button>
@@ -323,7 +320,7 @@ export function SeriesDetailPage({
               )}
 
               <section className="mb-8">
-                <p className="mb-3 text-sm text-[#888]">
+                <p className="mb-3 text-sm text-muted">
                   Próximo jogo
                   {vm.canManage && vm.confirmed > 0 && (
                     <span>
@@ -334,30 +331,30 @@ export function SeriesDetailPage({
                 </p>
 
                 {nextOccurrence ? (
-                  <div className="overflow-hidden rounded-2xl bg-[#1A1A1A] lg:max-w-xl">
+                  <div className="overflow-hidden rounded-2xl bg-card lg:max-w-xl">
                     <Link
                       href={matchPathWithCode(nextOccurrence.id, nextOccurrence.inviteCode)}
                       className="block transition-colors hover:bg-[#222]">
                       <div
-                        className="relative aspect-[16/10] bg-cover bg-center lg:aspect-[2/1]"
+                        className="relative aspect-16/10 bg-cover bg-center lg:aspect-2/1"
                         style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                        <p className="absolute bottom-3 left-4 text-sm font-bold text-[#BFFF00]">
+                        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
+                        <p className="absolute bottom-3 left-4 text-sm font-bold text-lime">
                           Ver detalhes da semana →
                         </p>
                       </div>
                       <div className="space-y-1 p-4 sm:p-5">
                         {match.location && (
-                          <p className="text-sm text-[#888]">
+                          <p className="text-sm text-muted">
                             {match.distance ?? ''}
                             {match.distance ? ' • ' : ''}
                             {match.location}
                           </p>
                         )}
-                        {nextSchedule && <p className="text-sm text-[#888]">{nextSchedule}</p>}
+                        {nextSchedule && <p className="text-sm text-muted">{nextSchedule}</p>}
                       </div>
                     </Link>
-                    <div className="border-t border-[#2a2a2a] px-4 pb-4 sm:px-5 sm:pb-5">
+                    <div className="border-t border-elevated px-4 pb-4 sm:px-5 sm:pb-5">
                       <NextGameStatus
                         statusLabel={statusLabel}
                         vm={vm}
@@ -374,7 +371,7 @@ export function SeriesDetailPage({
                     </div>
                   </div>
                 ) : (
-                  <p className="rounded-2xl bg-[#1A1A1A] p-6 text-center text-sm text-[#888] lg:max-w-xl">
+                  <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted lg:max-w-xl">
                     Nenhuma semana agendada.
                   </p>
                 )}
@@ -407,7 +404,7 @@ export function SeriesDetailPage({
                   />
                 </nav>
               ) : (
-                <p className="rounded-xl bg-[#1A1A1A] px-4 py-3 text-sm text-[#888]">
+                <p className="rounded-xl bg-card px-4 py-3 text-sm text-muted">
                   Lista de mensalistas, carteira e histórico são visíveis apenas para o
                   organizador e admins.
                 </p>
@@ -432,7 +429,7 @@ function SeriesSidebarActions({
       {vm.error && <p className="text-xs text-red-400">{vm.error}</p>}
 
       {vm.canManage ? (
-        <div className="rounded-lg border border-[#BFFF00]/40 bg-[#BFFF00]/10 py-3 text-center text-sm font-bold text-[#BFFF00]">
+        <div className="rounded-lg border border-lime/40 bg-lime/10 py-3 text-center text-sm font-bold text-lime">
           {vm.isOrganizer ? 'Você organiza esta pelada' : 'Você é admin desta pelada'}
         </div>
       ) : !vm.isJoined ? (
@@ -441,19 +438,19 @@ function SeriesSidebarActions({
             type="button"
             disabled={vm.joining}
             onClick={() => void vm.handleRequestToJoin()}
-            className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
+            className="w-full rounded-lg bg-lime py-3 text-sm font-bold text-black disabled:opacity-60">
             {vm.joining ? 'A enviar...' : 'Entrar na pelada'}
           </button>
         )
       ) : vm.isPendingApproval ? (
-        <div className="rounded-lg border border-[#333] py-3 text-center text-sm font-bold text-[#888]">
+        <div className="rounded-lg border border-line py-3 text-center text-sm font-bold text-muted">
           Aguardando aprovação
         </div>
       ) : hasUser ? (
         <button
           type="button"
           onClick={() => void vm.handleLeave()}
-          className="w-full rounded-lg border border-[#BFFF00] py-3 text-sm font-bold text-[#BFFF00]">
+          className="w-full rounded-lg border border-lime py-3 text-sm font-bold text-lime">
           Sair da pelada
         </button>
       ) : null}
@@ -471,7 +468,7 @@ function SeriesSidebarActions({
       {vm.canManage && (
         <button
           type="button"
-          className="w-full text-center text-sm font-semibold text-[#BFFF00] lg:hidden"
+          className="w-full text-center text-sm font-semibold text-lime lg:hidden"
           onClick={() => void vm.handleShareInvite()}>
           Editar
         </button>
@@ -521,7 +518,7 @@ function NextGameStatus({
   return (
     <div className="pt-2">
       {statusLabel ? (
-        <div className="rounded-xl bg-[#2a2a2a] py-3.5 text-center text-sm font-semibold text-[#BFFF00]">
+        <div className="rounded-xl bg-elevated py-3.5 text-center text-sm font-semibold text-lime">
           {statusLabel}
         </div>
       ) : !vm.isJoined && !vm.isGuestViewer ? (
@@ -529,11 +526,11 @@ function NextGameStatus({
           type="button"
           disabled={vm.joining}
           onClick={onJoin}
-          className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black disabled:opacity-60">
+          className="w-full rounded-xl bg-lime py-3.5 text-sm font-bold text-black disabled:opacity-60">
           {vm.joining ? 'A enviar...' : 'Entrar na pelada'}
         </button>
       ) : vm.isPendingApproval ? (
-        <div className="rounded-xl bg-[#2a2a2a] py-3.5 text-center text-sm font-semibold text-[#888]">
+        <div className="rounded-xl bg-elevated py-3.5 text-center text-sm font-semibold text-muted">
           Aguardando aprovação
         </div>
       ) : null}
@@ -561,11 +558,11 @@ function MenuRow({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-2xl bg-[#1A1A1A] px-4 py-4 text-left transition-colors hover:bg-[#222] disabled:opacity-50 disabled:hover:bg-[#1A1A1A]">
-      <span className="text-[#888]">{icon}</span>
+      className="flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-4 text-left transition-colors hover:bg-[#222] disabled:opacity-50 disabled:hover:bg-card">
+      <span className="text-muted">{icon}</span>
       <span className="min-w-0 flex-1 font-medium text-white">{label}</span>
       {hint && <span className="text-xs text-[#666]">{hint}</span>}
-      {trailing && <span className="text-sm text-[#888]">{trailing}</span>}
+      {trailing && <span className="text-sm text-muted">{trailing}</span>}
       {!disabled && <ChevronRight className="h-5 w-5 shrink-0 text-[#666]" />}
     </button>
   );

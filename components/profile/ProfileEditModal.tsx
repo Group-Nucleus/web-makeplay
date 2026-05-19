@@ -37,7 +37,7 @@ function ProgressRing({ rating }: { rating: number }) {
           strokeLinecap="round"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-xl font-black text-[#BFFF00]">
+      <span className="absolute inset-0 flex items-center justify-center text-xl font-black text-lime">
         {rating}
       </span>
     </div>
@@ -63,8 +63,8 @@ export function ProfileEditModal({ open, form, saving, onChange, onClose, onSave
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-4 sm:items-center">
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-[#111] border border-[#2a2a2a]">
-        <header className="flex items-center justify-between border-b border-[#2a2a2a] px-5 py-4">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-[#111] border border-elevated">
+        <header className="flex items-center justify-between border-b border-elevated px-5 py-4">
           <h2 className="text-lg font-bold text-white">Editar perfil</h2>
           <button type="button" onClick={onClose}>
             <X className="h-5 w-5 text-white" />
@@ -72,7 +72,7 @@ export function ProfileEditModal({ open, form, saving, onChange, onClose, onSave
         </header>
 
         <div className="overflow-y-auto px-5 py-5">
-          <label className="mb-1 block text-xs font-bold text-[#888]">USERNAME</label>
+          <label className="mb-1 block text-xs font-bold text-muted">USERNAME</label>
           <input
             value={form.username}
             onChange={(e) => onChange('username', e.target.value)}
@@ -81,7 +81,7 @@ export function ProfileEditModal({ open, form, saving, onChange, onClose, onSave
             autoCapitalize="none"
           />
 
-          <label className="mb-2 block text-xs font-bold text-[#888]">POSIÇÃO</label>
+          <label className="mb-2 block text-xs font-bold text-muted">POSIÇÃO</label>
           <div className="mb-5 flex flex-wrap gap-2">
             {POSITIONS.map((p) => (
               <button
@@ -89,14 +89,14 @@ export function ProfileEditModal({ open, form, saving, onChange, onClose, onSave
                 type="button"
                 onClick={() => onChange('position', p)}
                 className={`rounded-lg px-3 py-1.5 text-sm font-bold ${
-                  form.position === p ? 'bg-[#BFFF00] text-black' : 'bg-[#2a2a2a] text-[#888]'
+                  form.position === p ? 'bg-lime text-black' : 'bg-elevated text-muted'
                 }`}>
                 {p}
               </button>
             ))}
           </div>
 
-          <label className="mb-1 block text-xs font-bold text-[#888]">NÚMERO DA CAMISA</label>
+          <label className="mb-1 block text-xs font-bold text-muted">NÚMERO DA CAMISA</label>
           <input
             value={form.number}
             onChange={(e) => onChange('number', e.target.value)}
@@ -106,7 +106,7 @@ export function ProfileEditModal({ open, form, saving, onChange, onClose, onSave
             max={99}
           />
 
-          <label className="mb-3 block text-xs font-bold text-[#888]">ATRIBUTOS</label>
+          <label className="mb-3 block text-xs font-bold text-muted">ATRIBUTOS</label>
           <div className="mb-5 grid grid-cols-2 gap-3">
             {(['atk', 'def', 'str', 'skl'] as const).map((key) => (
               <div key={key}>
@@ -125,18 +125,18 @@ export function ProfileEditModal({ open, form, saving, onChange, onClose, onSave
             ))}
           </div>
 
-          <div className="rounded-xl bg-[#1A1A1A] p-4 text-center">
-            <p className="mb-2 text-xs font-bold text-[#888]">RATING CALCULADO</p>
+          <div className="rounded-xl bg-card p-4 text-center">
+            <p className="mb-2 text-xs font-bold text-muted">RATING CALCULADO</p>
             <ProgressRing rating={rating} />
           </div>
         </div>
 
-        <footer className="border-t border-[#2a2a2a] p-5">
+        <footer className="border-t border-elevated p-5">
           <button
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="w-full rounded-xl bg-[#BFFF00] py-3.5 font-bold text-black disabled:opacity-60">
+            className="w-full rounded-xl bg-lime py-3.5 font-bold text-black disabled:opacity-60">
             {saving ? 'A GUARDAR...' : 'SALVAR'}
           </button>
         </footer>

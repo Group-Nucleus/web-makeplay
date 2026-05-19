@@ -37,7 +37,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-lime border-t-transparent" />
       </div>
     );
   }
@@ -48,7 +48,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     if (pathname === '/login') return <LoginPage />;
     return (
       <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-lime border-t-transparent" />
       </div>
     );
   }

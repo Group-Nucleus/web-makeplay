@@ -42,12 +42,12 @@ export function GuestJoinModal({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Entrar na lista</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#888]">
+          <p className="mt-2 text-sm leading-relaxed text-muted">
             Só precisas do teu nome. O organizador aprova o pedido. Cria conta depois para
             explorar jogos e amigos.
           </p>
         </div>
-        <button type="button" onClick={onClose} className="text-[#888]">
+        <button type="button" onClick={onClose} className="text-muted">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -67,7 +67,7 @@ export function GuestJoinModal({
         type="button"
         disabled={!canSubmit}
         onClick={() => void handleSubmit()}
-        className="mt-4 w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-50">
+        className="mt-4 w-full rounded-lg bg-lime py-3 text-sm font-bold text-black disabled:opacity-50">
         {loading ? 'A enviar...' : 'Pedir para participar'}
       </button>
     </ModalOverlay>
@@ -87,7 +87,7 @@ function ModalOverlay({
       onClick={onClose}
       role="presentation">
       <div
-        className="w-full max-w-md rounded-2xl border border-[#333] bg-[#1A1A1A] p-6"
+        className="w-full max-w-md rounded-2xl border border-line bg-card p-6"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true">

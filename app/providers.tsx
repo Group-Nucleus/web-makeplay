@@ -3,6 +3,7 @@
 import { AuthProvider, useAuth } from '@/lib/auth/context';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { AppShell } from '@/components/layout/AppShell';
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { shouldUseGuestShell } from '@/lib/guestRoutes';
 import { usePathname } from 'next/navigation';
 
@@ -18,7 +19,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <AuthGate>
-        <Shell>{children}</Shell>
+        <ErrorBoundary>
+          <Shell>{children}</Shell>
+        </ErrorBoundary>
       </AuthGate>
     </AuthProvider>
   );

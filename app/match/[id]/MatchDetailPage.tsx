@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Calendar, Clock, Copy, Link2, MapPin, Pencil, Share2, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { CancelOccurrenceModal } from '@/components/match/CancelOccurrenceModal';
 import { EditMatchModal } from '@/components/match/EditMatchModal';
 import { GuestJoinModal } from '@/components/match/GuestJoinModal';
 import {
@@ -15,6 +17,7 @@ import {
 } from '@/components/match/MatchDetailSections';
 import { OccurrenceAttendancePanel } from '@/components/match/OccurrenceAttendancePanel';
 import { ParticipantManageSheet } from '@/components/match/ParticipantManageSheet';
+import { MatchDetailSkeleton } from '@/components/ui/Skeleton';
 import { useMatchDetail } from '@/lib/hooks/useMatchDetail';
 import { useAuth } from '@/lib/auth/context';
 import type { MatchDocument } from '@/lib/models/match-document';
@@ -41,8 +44,10 @@ export function MatchDetailPage({
 }) {
   const vm = useMatchDetail(matchId, inviteCode);
   const { user } = useAuth();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('INFO');
   const [editOpen, setEditOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     if (!vm.canManage && tab === 'JOGADORES') {
@@ -51,11 +56,7 @@ export function MatchDetailPage({
   }, [vm.canManage, tab]);
 
   if (vm.loading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
-      </div>
-    );
+    return <MatchDetailSkeleton />;
   }
 
   if (vm.accessBlocked || vm.loadError || !vm.match) {
@@ -69,20 +70,20 @@ export function MatchDetailPage({
         {vm.seriesId && (
           <Link
             href={`/series/${vm.seriesId}`}
-            className="mb-4 block text-sm font-bold text-[#BFFF00]">
+            className="mb-4 block text-sm font-bold text-lime">
             Ver pelada do grupo
           </Link>
         )}
         {vm.isGuestViewer ? (
-          <Link href="/login" className="text-[#BFFF00]">
+          <Link href="/login" className="text-lime">
             Entrar com conta
           </Link>
         ) : vm.guestInvitePath ? (
-          <Link href={vm.guestInvitePath} className="text-[#BFFF00]">
+          <Link href={vm.guestInvitePath} className="text-lime">
             Voltar à partida
           </Link>
         ) : (
-          <Link href="/explore" className="text-[#BFFF00]">
+          <Link href="/explore" className="text-lime">
             Voltar ao explorar
           </Link>
         )}
@@ -117,55 +118,66 @@ export function MatchDetailPage({
         />
       )}
 
+      <CancelOccurrenceModal
+        open={cancelOpen}
+        busy={vm.managing}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={(note) => {
+          void vm.handleCancelOccurrence(note).then(() => setCancelOpen(false));
+        }}
+      />
+
       {vm.shareFeedback && (
-        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-[200] max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full bg-[#BFFF00] px-4 py-2 text-center text-sm font-bold text-black shadow-lg md:bottom-6">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-[200] max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full bg-lime px-4 py-2 text-center text-sm font-bold text-black shadow-lg md:bottom-6">
           {vm.shareFeedback}
         </div>
       )}
 
       <div className="flex flex-col gap-8 lg:flex-row">
         <aside className="w-full shrink-0 lg:w-[340px]">
-          <div className="overflow-hidden rounded-2xl bg-[#1A1A1A]">
+          <div className="overflow-hidden rounded-2xl bg-card">
             <div
               className="relative h-48 bg-cover bg-center"
               style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}>
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
               <div className="absolute bottom-0 p-4">
                 {isCancelled && (
-                  <span className="mb-1 inline-block rounded bg-[#FF4136]/20 px-2 py-0.5 text-[10px] font-bold uppercase text-[#FF4136]">
+                  <span className="mb-1 inline-block rounded bg-danger/20 px-2 py-0.5 text-[10px] font-bold uppercase text-danger">
                     Cancelada
                   </span>
                 )}
                 <h1 className="text-2xl font-bold text-white">{match.title}</h1>
-                {subtitle && <p className="text-sm text-[#ccc]">{subtitle}</p>}
+                {subtitle && <p className="text-sm text-dim">{subtitle}</p>}
                 {vm.seriesId && (
                   <Link
                     href={`/series/${vm.seriesId}`}
-                    className="mt-2 inline-block text-xs font-bold text-[#BFFF00]">
+                    className="mt-2 inline-block text-xs font-bold text-lime">
                     Ver pelada fixa →
                   </Link>
                 )}
               </div>
             </div>
-            <JoinActions vm={vm} hasUser={!!user} canInvite={canInvite} />
+            <JoinActions
+              vm={vm}
+              hasUser={!!user}
+              canInvite={canInvite}
+              onLogin={() => router.push('/login')}
+            />
             {vm.canManage && (
               <div className="space-y-2 px-4 pb-2">
                 <button
                   type="button"
                   onClick={() => setEditOpen(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#333] py-2.5 text-sm font-bold text-white hover:border-[#555]">
-                  <Pencil className="h-4 w-4 text-[#BFFF00]" />
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-line py-2.5 text-sm font-bold text-white hover:border-[#555]">
+                  <Pencil className="h-4 w-4 text-lime" />
                   EDITAR {vm.seriesId ? 'ESTA SEMANA' : 'PARTIDA'}
                 </button>
                 {vm.seriesId && doc?.matchStatus !== 'cancelled' && (
                   <button
                     type="button"
                     disabled={vm.managing}
-                    onClick={() => {
-                      const note = window.prompt('Motivo do cancelamento (opcional):') ?? '';
-                      void vm.handleCancelOccurrence(note);
-                    }}
-                    className="flex w-full items-center justify-center rounded-lg border border-[#FF4136]/50 py-2.5 text-sm font-bold text-[#FF4136] disabled:opacity-50">
+                    onClick={() => setCancelOpen(true)}
+                    className="flex w-full items-center justify-center rounded-lg border border-danger/50 py-2.5 text-sm font-bold text-danger disabled:opacity-50">
                     CANCELAR ESTA SEMANA
                   </button>
                 )}
@@ -214,17 +226,19 @@ function JoinActions({
   vm,
   hasUser,
   canInvite,
+  onLogin,
 }: {
   vm: ReturnType<typeof useMatchDetail>;
   hasUser: boolean;
   canInvite: boolean;
+  onLogin: () => void;
 }) {
   return (
     <div className="space-y-2 p-4">
       {vm.actionError && <p className="text-xs text-red-400">{vm.actionError}</p>}
 
       {vm.canManage ? (
-        <div className="rounded-lg border border-[#BFFF00]/40 bg-[#BFFF00]/10 py-3 text-center text-sm font-bold text-[#BFFF00]">
+        <div className="rounded-lg border border-lime/40 bg-lime/10 py-3 text-center text-sm font-bold text-lime">
           {vm.isOrganizer ? 'Você é o organizador' : 'Você é admin desta partida'}
         </div>
       ) : vm.isGuestViewer && vm.canGuestJoin ? (
@@ -232,7 +246,7 @@ function JoinActions({
           type="button"
           disabled={vm.joining}
           onClick={() => vm.openGuestJoin()}
-          className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
+          className="w-full rounded-lg bg-lime py-3 text-sm font-bold text-black disabled:opacity-60">
           {vm.joining ? 'A enviar...' : 'ENTRAR SÓ COM O MEU NOME'}
         </button>
       ) : !vm.isJoined ? (
@@ -240,7 +254,7 @@ function JoinActions({
           type="button"
           disabled={vm.joining}
           onClick={() => void vm.handleRequestToJoin()}
-          className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
+          className="w-full rounded-lg bg-lime py-3 text-sm font-bold text-black disabled:opacity-60">
           {vm.joining
             ? 'A enviar...'
             : vm.seriesId
@@ -248,7 +262,7 @@ function JoinActions({
               : 'QUERO PARTICIPAR'}
         </button>
       ) : vm.isPendingApproval ? (
-        <div className="flex items-center justify-center gap-2 rounded-lg border border-[#333] py-3 text-sm font-bold text-[#888]">
+        <div className="flex items-center justify-center gap-2 rounded-lg border border-line py-3 text-sm font-bold text-muted">
           <Clock className="h-4 w-4" />
           AGUARDANDO APROVAÇÃO
         </div>
@@ -256,7 +270,7 @@ function JoinActions({
         <button
           type="button"
           onClick={() => void vm.handleLeave()}
-          className="w-full rounded-lg border border-[#BFFF00] py-3 text-sm font-bold text-[#BFFF00]">
+          className="w-full rounded-lg border border-lime py-3 text-sm font-bold text-lime">
           {vm.seriesId ? 'SAIR DA PELADA' : 'SAIR DA PARTIDA'}
         </button>
       ) : null}
@@ -272,14 +286,12 @@ function JoinActions({
       )}
 
       {vm.isGuestViewer && (
-        <p className="text-center text-sm text-[#888]">
+        <p className="text-center text-sm text-muted">
           Já tens conta?{' '}
           <button
             type="button"
-            onClick={() => {
-              window.location.href = '/login';
-            }}
-            className="font-semibold text-[#BFFF00]">
+            onClick={onLogin}
+            className="font-semibold text-lime">
             Entrar
           </button>
         </p>
@@ -301,19 +313,19 @@ function MatchMeta({
 }) {
   return (
     <>
-      <div className="flex items-start gap-3 px-4 pb-3 text-sm text-[#888]">
+      <div className="flex items-start gap-3 px-4 pb-3 text-sm text-muted">
         <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
         <span className="text-white">{match.nextMatch}</span>
       </div>
       {match.location && (
         <div className="flex items-start gap-3 px-4 pb-3 text-sm">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#888]" />
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
           <span className="text-white">{match.location}</span>
         </div>
       )}
       {organizerName && (
         <div className="flex items-center gap-3 px-4 pb-3 text-sm">
-          <User className="h-4 w-4 text-[#888]" />
+          <User className="h-4 w-4 text-muted" />
           <span className="text-white">{organizerName}</span>
         </div>
       )}
@@ -321,12 +333,12 @@ function MatchMeta({
         <button
           type="button"
           onClick={() => void onCopyCode()}
-          className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2 rounded-lg border border-[#333] bg-black px-3 py-2 text-left">
-          <Link2 className="h-4 w-4 shrink-0 text-[#BFFF00]" />
-          <span className="flex-1 font-mono text-sm font-bold tracking-widest text-[#BFFF00]">
+          className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2 rounded-lg border border-line bg-black px-3 py-2 text-left">
+          <Link2 className="h-4 w-4 shrink-0 text-lime" />
+          <span className="flex-1 font-mono text-sm font-bold tracking-widest text-lime">
             {inviteCode}
           </span>
-          <Copy className="h-4 w-4 shrink-0 text-[#BFFF00]" />
+          <Copy className="h-4 w-4 shrink-0 text-lime" />
         </button>
       )}
     </>
@@ -351,14 +363,14 @@ function MatchDetails({ doc }: { doc: MatchDocument }) {
     'Sem descrição adicional. Usa o convite para chamar jogadores e gerir a lista.';
 
   return (
-    <div className="space-y-4 border-t border-[#2a2a2a] px-4 pb-4 pt-4">
+    <div className="space-y-4 border-t border-elevated px-4 pb-4 pt-4">
       <div>
-        <h3 className="mb-2 text-xs font-bold tracking-wider text-[#888]">DESCRIÇÃO</h3>
-        <p className="text-sm leading-relaxed text-[#ccc]">{description}</p>
+        <h3 className="mb-2 text-xs font-bold tracking-wider text-muted">DESCRIÇÃO</h3>
+        <p className="text-sm leading-relaxed text-dim">{description}</p>
       </div>
 
       <div>
-        <h3 className="mb-3 text-xs font-bold tracking-wider text-[#888]">DETALHES</h3>
+        <h3 className="mb-3 text-xs font-bold tracking-wider text-muted">DETALHES</h3>
         <dl className="space-y-2.5">
           <DetailRow label="Tipo" value={typeLabel} />
           <DetailRow label="Modalidade" value={SPORT_LABEL[doc.sport] ?? doc.sport} />
@@ -381,8 +393,8 @@ function MatchDetails({ doc }: { doc: MatchDocument }) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between gap-4 border-b border-[#2a2a2a] pb-2 text-sm last:border-0">
-      <dt className="text-[#888]">{label}</dt>
+    <div className="flex justify-between gap-4 border-b border-elevated pb-2 text-sm last:border-0">
+      <dt className="text-muted">{label}</dt>
       <dd className="text-right font-medium text-white">{value}</dd>
     </div>
   );
@@ -399,14 +411,14 @@ function TabBar({
 }) {
   const tabs: Tab[] = showPlayersTab ? ['INFO', 'JOGADORES'] : ['INFO'];
   return (
-    <div className="mb-6 flex gap-6 border-b border-[#2a2a2a]">
+    <div className="mb-6 flex gap-6 border-b border-elevated">
       {tabs.map((t) => (
         <button
           key={t}
           type="button"
           onClick={() => setTab(t)}
           className={`pb-3 text-sm font-bold tracking-wide ${
-            tab === t ? 'border-b-2 border-[#BFFF00] text-[#BFFF00]' : 'text-[#888]'
+            tab === t ? 'border-b-2 border-lime text-lime' : 'text-muted'
           }`}>
           {t === 'INFO' ? 'CONFIRMADOS' : 'JOGADORES'}
         </button>
@@ -427,21 +439,21 @@ function InfoTab({
   return (
   <div>
     {vm.isGuestViewer && vm.canGuestJoin && (
-      <div className="mb-6 rounded-xl border border-[#BFFF00]/35 bg-[#BFFF00]/5 p-4">
+      <div className="mb-6 rounded-xl border border-lime/35 bg-lime/5 p-4">
         <p className="mb-3 text-sm text-white">
           Entra na lista desta partida só com o teu nome — sem criar conta.
         </p>
         <button
           type="button"
           onClick={() => vm.openGuestJoin()}
-          className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black">
+          className="w-full rounded-lg bg-lime py-3 text-sm font-bold text-black">
           Entrar só com o meu nome
         </button>
       </div>
     )}
 
     {vm.isGuestViewer && vm.isJoined && vm.isPendingApproval && (
-      <p className="mb-4 rounded-xl border border-[#333] bg-[#1A1A1A] px-4 py-3 text-sm text-[#ccc]">
+      <p className="mb-4 rounded-xl border border-line bg-card px-4 py-3 text-sm text-dim">
         Pedido enviado. O organizador confirma a tua vaga em breve.
       </p>
     )}
@@ -454,7 +466,7 @@ function InfoTab({
     />
 
     {!vm.canSeeParticipantNames && !vm.isGuestViewer && (
-      <p className="mb-4 text-sm text-[#888]">
+      <p className="mb-4 text-sm text-muted">
         A lista completa de jogadores é visível apenas para o organizador e admins.
       </p>
     )}
@@ -465,7 +477,7 @@ function InfoTab({
         <button
           type="button"
           onClick={() => void vm.handleSharePlayersList()}
-          className="text-xs font-bold text-[#BFFF00]">
+          className="text-xs font-bold text-lime">
           COMPARTILHAR LISTA
         </button>
       )}
@@ -521,7 +533,7 @@ function PlayersTab({
           remaining={vm.remaining}
           progressPercent={vm.progressPercent}
         />
-        <p className="mb-4 text-sm text-[#888]">
+        <p className="mb-4 text-sm text-muted">
           As vagas ocupadas aparecem sem nomes. Entra com conta para ver a lista completa e
           convidar outros jogadores.
         </p>
@@ -584,14 +596,14 @@ function PlayersTab({
             type="button"
             onClick={() => void vm.handleShareInvite()}
             disabled={!vm.doc?.inviteCode}
-            className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#BFFF00] py-2.5 text-sm font-bold text-[#BFFF00] disabled:opacity-40">
+            className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-lime py-2.5 text-sm font-bold text-lime disabled:opacity-40">
             <Share2 className="h-4 w-4" />
             Convidar jogadores
           </button>
           <button
             type="button"
             onClick={() => void vm.handleSharePlayersList()}
-            className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-[#BFFF00] py-2.5 text-sm font-bold text-[#BFFF00]">
+            className="flex min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border-2 border-lime py-2.5 text-sm font-bold text-lime">
             <Share2 className="h-4 w-4" />
             Compartilhar lista
           </button>
@@ -631,7 +643,7 @@ function PlayersTab({
         {...playerSectionProps}
       />
 
-      {empty && <p className="py-8 text-center text-[#888]">Nenhum jogador ainda.</p>}
+      {empty && <p className="py-8 text-center text-muted">Nenhum jogador ainda.</p>}
     </div>
   );
 }

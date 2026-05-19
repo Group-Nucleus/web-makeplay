@@ -98,22 +98,22 @@ export function EditMatchModal({
         onClose={() => setCreateVenueOpen(false)}
         onCreated={handleVenueCreated}
       />
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#0d0d0d]">
-        <header className="flex items-center justify-between border-b border-[#2a2a2a] px-5 py-4">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-elevated bg-[#0d0d0d]">
+        <header className="flex items-center justify-between border-b border-elevated px-5 py-4">
           <h2 className="text-sm font-bold tracking-wide text-white">Editar partida</h2>
-          <button type="button" onClick={onClose} className="text-[#888] hover:text-white">
+          <button type="button" onClick={onClose} className="text-muted hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          <p className="mb-4 text-xs text-[#888]">
+          <p className="mb-4 text-xs text-muted">
             {confirmedCount > 0
               ? `Mínimo de ${confirmedCount} vagas (jogadores confirmados).`
               : 'Alterações sincronizam o convite público.'}
           </p>
 
-          <p className="mb-2 text-xs font-bold tracking-wider text-[#888]">ESPORTE</p>
+          <p className="mb-2 text-xs font-bold tracking-wider text-muted">ESPORTE</p>
           <div className="mb-5 grid grid-cols-3 gap-2">
             {SPORTS.map((s) => (
               <button
@@ -122,8 +122,8 @@ export function EditMatchModal({
                 onClick={() => vm.setSport(s.id)}
                 className={`flex flex-col items-center gap-1 rounded-lg border p-2 text-center transition-colors ${
                   form.sport === s.id
-                    ? 'border-[#BFFF00] bg-[#BFFF00]/10'
-                    : 'border-[#333] bg-[#1A1A1A]'
+                    ? 'border-lime bg-lime/10'
+                    : 'border-line bg-card'
                 }`}>
                 <span className="text-xl">{s.emoji}</span>
                 <span className="text-[10px] font-semibold text-white">{s.label}</span>
@@ -140,19 +140,19 @@ export function EditMatchModal({
           </Field>
 
           {vm.selectedVenue ? (
-            <div className="mb-4 rounded-xl border border-[#333] bg-[#1A1A1A] p-4">
+            <div className="mb-4 rounded-xl border border-line bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 gap-3">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#BFFF00]" />
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
                   <div>
                     <p className="font-semibold text-white">{vm.selectedVenue.name}</p>
-                    <p className="truncate text-xs text-[#888]">{vm.selectedVenue.address}</p>
+                    <p className="truncate text-xs text-muted">{vm.selectedVenue.address}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => vm.setVenue(null)}
-                  className="text-[#888] hover:text-white">
+                  className="text-muted hover:text-white">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -162,11 +162,11 @@ export function EditMatchModal({
               <button
                 type="button"
                 onClick={() => setVenuePickerOpen(true)}
-                className="mb-4 w-full rounded-xl border border-[#333] bg-[#1A1A1A] px-4 py-3 text-left">
-                <p className="mb-1 text-xs font-bold tracking-wider text-[#888]">QUADRA</p>
+                className="mb-4 w-full rounded-xl border border-line bg-card px-4 py-3 text-left">
+                <p className="mb-1 text-xs font-bold tracking-wider text-muted">QUADRA</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[#666]">Selecionar quadra</span>
-                  <MapPin className="h-4 w-4 text-[#BFFF00]" />
+                  <MapPin className="h-4 w-4 text-lime" />
                 </div>
               </button>
               <Field label="Local / endereço" error={vm.errors.location}>
@@ -286,7 +286,7 @@ export function EditMatchModal({
                 max={59}
                 value={form.ageMin}
                 onChange={(e) => vm.setField('ageMin', Number(e.target.value))}
-                className="w-full accent-[#BFFF00]"
+                className="w-full accent-lime"
               />
               <input
                 type="range"
@@ -294,12 +294,12 @@ export function EditMatchModal({
                 max={60}
                 value={form.ageMax}
                 onChange={(e) => vm.setField('ageMax', Number(e.target.value))}
-                className="w-full accent-[#BFFF00]"
+                className="w-full accent-lime"
               />
             </div>
           </Field>
 
-          <p className="mb-2 mt-2 text-xs font-bold tracking-wider text-[#888]">PRIVACIDADE</p>
+          <p className="mb-2 mt-2 text-xs font-bold tracking-wider text-muted">PRIVACIDADE</p>
           <div className="mb-4 grid grid-cols-2 gap-2">
             {PRIVACY.map((p) => (
               <button
@@ -308,10 +308,10 @@ export function EditMatchModal({
                 onClick={() => vm.setPrivacy(p.value)}
                 className={`rounded-xl border-2 p-3 text-left transition-colors ${
                   form.privacy === p.value
-                    ? 'border-[#BFFF00] bg-[#BFFF00]/10'
-                    : 'border-[#333] bg-[#1A1A1A]'
+                    ? 'border-lime bg-lime/10'
+                    : 'border-line bg-card'
                 }`}>
-                <Globe className="mb-1 h-5 w-5 text-[#BFFF00]" />
+                <Globe className="mb-1 h-5 w-5 text-lime" />
                 <span className="block text-xs font-bold text-white">{p.label}</span>
               </button>
             ))}
@@ -322,9 +322,9 @@ export function EditMatchModal({
               type="checkbox"
               checked={form.hideFromAbsent}
               onChange={(e) => vm.setField('hideFromAbsent', e.target.checked)}
-              className="mt-1 accent-[#BFFF00]"
+              className="mt-1 accent-lime"
             />
-            <span className="text-xs text-[#888]">
+            <span className="text-xs text-muted">
               Não exibir para jogadores que faltaram em jogos anteriores
             </span>
           </label>
@@ -333,13 +333,13 @@ export function EditMatchModal({
               type="checkbox"
               checked={form.hidePhoneNumber}
               onChange={(e) => vm.setField('hidePhoneNumber', e.target.checked)}
-              className="mt-1 accent-[#BFFF00]"
+              className="mt-1 accent-lime"
             />
-            <span className="text-xs text-[#888]">Ocultar telefone do organizador</span>
+            <span className="text-xs text-muted">Ocultar telefone do organizador</span>
           </label>
         </div>
 
-        <footer className="border-t border-[#2a2a2a] p-5">
+        <footer className="border-t border-elevated p-5">
           {vm.submitError && (
             <p className="mb-3 text-center text-sm text-red-400">{vm.submitError}</p>
           )}
@@ -347,7 +347,7 @@ export function EditMatchModal({
             type="button"
             onClick={() => void vm.submit()}
             disabled={vm.isSubmitting}
-            className="w-full rounded-xl bg-[#BFFF00] py-3.5 text-sm font-bold text-black disabled:opacity-60">
+            className="w-full rounded-xl bg-lime py-3.5 text-sm font-bold text-black disabled:opacity-60">
             {vm.isSubmitting ? 'A GUARDAR...' : 'GUARDAR ALTERAÇÕES'}
           </button>
         </footer>

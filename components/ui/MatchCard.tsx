@@ -19,7 +19,7 @@ export function MatchCard({ match }: { match: Match }) {
   return (
     <Link
       href={href}
-      className="group flex min-w-0 w-full flex-col overflow-hidden rounded-2xl bg-[#1A1A1A] transition-transform active:scale-[0.99] md:hover:scale-[1.02]">
+      className="group flex min-w-0 w-full flex-col overflow-hidden rounded-2xl bg-card transition-transform active:scale-[0.99] md:hover:scale-[1.02]">
       <div className="relative aspect-[16/10] w-full shrink-0">
         <img
           src={match.image ?? FALLBACK}
@@ -29,20 +29,20 @@ export function MatchCard({ match }: { match: Match }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-3">
-          {isWeekly && <p className="text-xs text-[#ccc]">Pelada fixa</p>}
+          {isWeekly && <p className="text-xs text-dim">Pelada fixa</p>}
           <h3 className="text-lg font-bold text-white">{match.title}</h3>
         </div>
       </div>
       <div className="p-3">
         {match.location && (
-          <p className="mb-1 text-sm text-[#888]">
+          <p className="mb-1 text-sm text-muted">
             {match.distance} • {match.location}
           </p>
         )}
-        {isWeekly && <p className="text-xs text-[#888]">Próximo jogo:</p>}
+        {isWeekly && <p className="text-xs text-muted">Próximo jogo:</p>}
         <p className="text-sm font-medium text-white">{match.nextMatch}</p>
         {match.isConfirmed && (
-          <div className="mt-3 rounded-lg bg-[#BFFF00]/15 py-2.5 text-center text-sm font-semibold text-[#BFFF00]">
+          <div className="mt-3 rounded-lg bg-lime/15 py-2.5 text-center text-sm font-semibold text-lime">
             Estás dentro
           </div>
         )}

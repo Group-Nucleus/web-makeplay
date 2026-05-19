@@ -49,11 +49,11 @@ export default function InviteRedirectPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-white">{error}</p>
-        <p className="max-w-sm text-sm text-[#888]">
+        <p className="max-w-sm text-sm text-muted">
           Confirma o link com quem te convidou. O endereço deve ser algo como{' '}
-          <span className="text-[#BFFF00]">/invite/ABC123</span>.
+          <span className="text-lime">/invite/ABC123</span>.
         </p>
-        <Link href="/login" className="text-sm font-bold text-[#BFFF00]">
+        <Link href="/login" className="text-sm font-bold text-lime">
           Entrar com conta
         </Link>
       </div>
@@ -62,7 +62,7 @@ export default function InviteRedirectPage() {
 
   return (
     <div className="flex min-h-[40vh] items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#BFFF00] border-t-transparent" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-lime border-t-transparent" />
     </div>
   );
 }

@@ -87,7 +87,7 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
       const canSeeSensitive = detail.viewer.canSeeSensitive;
       setDoc(seriesDocumentFromApiDetail(detail));
       const plist = canSeeSensitive ? (detail.participants ?? []) : [];
-      setCanSeeParticipantNames(canSeeSensitive && plist.length > 0);
+      setCanSeeParticipantNames(canSeeSensitive);
       setParticipants(plist.map(seriesParticipantFromApiDto));
       setOccurrences(detail.occurrences ?? []);
       setOrganizerName(detail.organizer?.displayName ?? '');

@@ -17,11 +17,11 @@ const AUTH_LINKS = [
 function Logo({ showWordmark = true }: { showWordmark?: boolean }) {
   return (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#BFFF00] text-sm font-black text-black">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-lime text-sm font-black text-black">
         B
       </span>
       {showWordmark && (
-        <span className="text-sm font-extrabold tracking-widest text-[#BFFF00]">BORAPLAY</span>
+        <span className="text-sm font-extrabold tracking-widest text-lime">BORAPLAY</span>
       )}
     </>
   );
@@ -46,17 +46,17 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
       : pathname;
 
     return (
-      <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-black/95 backdrop-blur-sm supports-[backdrop-filter]:bg-black/80">
+      <header className="sticky top-0 z-50 border-b border-elevated bg-black/95 backdrop-blur-sm supports-[backdrop-filter]:bg-black/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6 sm:py-3.5">
           <Link href={homeHref} className="flex min-w-0 items-center gap-2">
             <Logo />
           </Link>
-          <span className="hidden truncate text-center text-xs font-medium text-[#888] sm:block">
+          <span className="hidden truncate text-center text-xs font-medium text-muted sm:block">
             Convite à partida
           </span>
           <Link
             href="/login"
-            className="shrink-0 rounded-lg border border-[#BFFF00] px-3 py-1.5 text-xs font-bold text-[#BFFF00]">
+            className="shrink-0 rounded-lg border border-lime px-3 py-1.5 text-xs font-bold text-lime">
             Entrar
           </Link>
         </div>
@@ -67,7 +67,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
   return (
     <>
       {/* Desktop */}
-      <header className="sticky top-0 z-50 hidden border-b border-[#2a2a2a] bg-black md:block">
+      <header className="sticky top-0 z-50 hidden border-b border-elevated bg-black md:block">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3.5 lg:gap-8">
           <Link href="/" className="mr-auto flex shrink-0 items-center gap-2.5">
             <Logo />
@@ -80,8 +80,8 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
                 href={item.href}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                   isActive(item.href)
-                    ? 'bg-[#1A1A1A] text-white'
-                    : 'text-[#888] hover:text-white'
+                    ? 'bg-card text-white'
+                    : 'text-muted hover:text-white'
                 }`}>
                 {item.label}
               </Link>
@@ -90,7 +90,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
 
           <Link
             href="/profile"
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1A1A1A] ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-card ${
               isActive('/profile') ? 'ring-1 ring-[#BFFF00]' : ''
             }`}
             aria-label="Perfil">
@@ -100,7 +100,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
       </header>
 
       {/* Mobile — topo compacto */}
-      <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-black/95 backdrop-blur-sm supports-[backdrop-filter]:bg-black/80 md:hidden">
+      <header className="sticky top-0 z-50 border-b border-elevated bg-black/95 backdrop-blur-sm supports-[backdrop-filter]:bg-black/80 md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <Logo />
@@ -110,7 +110,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
 
       {/* Mobile — navegação inferior */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-[#2a2a2a] bg-black/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm supports-[backdrop-filter]:bg-black/90 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-elevated bg-black/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm supports-[backdrop-filter]:bg-black/90 md:hidden"
         aria-label="Navegação principal">
         <div className="mx-auto flex max-w-lg items-stretch justify-around px-2">
           {AUTH_LINKS.map(({ href, label, Icon }) => {
@@ -120,7 +120,7 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
                 key={href}
                 href={href}
                 className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-2 py-2.5 text-[10px] font-semibold transition-colors ${
-                  active ? 'text-[#BFFF00]' : 'text-[#888]'
+                  active ? 'text-lime' : 'text-muted'
                 }`}>
                 <Icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : ''}`} strokeWidth={active ? 2.5 : 2} />
                 <span className="truncate">{label}</span>

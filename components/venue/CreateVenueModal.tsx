@@ -44,7 +44,7 @@ export function CreateVenueModal({
     <ModalOverlay onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Cadastrar quadra</h2>
-        <button type="button" onClick={onClose} className="text-[#888] hover:text-white">
+        <button type="button" onClick={onClose} className="text-muted hover:text-white">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -96,7 +96,7 @@ export function CreateVenueModal({
           />
         </Field>
 
-        <p className="mb-2 mt-4 text-xs font-bold tracking-wider text-[#888]">ESPORTES</p>
+        <p className="mb-2 mt-4 text-xs font-bold tracking-wider text-muted">ESPORTES</p>
         <ChipGrid
           items={SPORTS.map((s) => ({
             key: s.id,
@@ -106,7 +106,7 @@ export function CreateVenueModal({
           }))}
         />
 
-        <p className="mb-2 mt-4 text-xs font-bold tracking-wider text-[#888]">COMODIDADES</p>
+        <p className="mb-2 mt-4 text-xs font-bold tracking-wider text-muted">COMODIDADES</p>
         <ChipGrid
           items={AMENITIES.map((a) => ({
             key: a.key,
@@ -116,13 +116,13 @@ export function CreateVenueModal({
           }))}
         />
 
-        <label className="mt-4 flex cursor-pointer items-center justify-between rounded-xl bg-[#1A1A1A] px-4 py-3">
+        <label className="mt-4 flex cursor-pointer items-center justify-between rounded-xl bg-card px-4 py-3">
           <span className="text-sm text-white">Visível publicamente</span>
           <input
             type="checkbox"
             checked={vm.form.isPublic}
             onChange={(e) => vm.setField('isPublic', e.target.checked)}
-            className="h-5 w-5 accent-[#BFFF00]"
+            className="h-5 w-5 accent-lime"
           />
         </label>
 
@@ -133,7 +133,7 @@ export function CreateVenueModal({
         type="button"
         disabled={vm.saving}
         onClick={() => void vm.submit()}
-        className="mt-4 w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
+        className="mt-4 w-full rounded-lg bg-lime py-3 text-sm font-bold text-black disabled:opacity-60">
         {vm.saving ? 'CADASTRANDO...' : 'CADASTRAR'}
       </button>
     </ModalOverlay>
@@ -153,7 +153,7 @@ function ModalOverlay({
       onClick={onClose}
       role="presentation">
       <div
-        className="w-full max-w-lg rounded-2xl border border-[#333] bg-black p-6 shadow-xl"
+        className="w-full max-w-lg rounded-2xl border border-line bg-black p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true">
@@ -176,7 +176,7 @@ function ChipGrid({
           type="button"
           onClick={item.onClick}
           className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-            item.selected ? 'bg-[#BFFF00] text-black' : 'bg-[#1A1A1A] text-[#888]'
+            item.selected ? 'bg-lime text-black' : 'bg-card text-muted'
           }`}>
           {item.label}
         </button>

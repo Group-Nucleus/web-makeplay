@@ -126,7 +126,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       setDoc(matchDocumentFromApiDetail(detail));
       const canSeeSensitive = detail.viewer.canSeeSensitive;
       const plist = canSeeSensitive ? (detail.participants ?? []) : [];
-      setCanSeeParticipantNames(canSeeSensitive && plist.length > 0);
+      setCanSeeParticipantNames(canSeeSensitive);
       setParticipants(plist.map(participantFromApiDto));
       setOrganizerName(detail.organizer?.displayName ?? '');
       if (codeNorm) {
