@@ -185,7 +185,7 @@ export function MatchDetailPage({
           <TabBar tab={tab} setTab={setTab} showPlayersTab={vm.canManage} />
           {tab === 'INFO' && (
             <>
-              {vm.isSeriesMember && vm.attendanceSummary && (
+              {vm.canMarkOccurrenceAttendance && (
                 <OccurrenceAttendancePanel
                   myStatus={vm.myAttendanceStatus}
                   summary={vm.attendanceSummary}

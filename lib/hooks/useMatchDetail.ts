@@ -183,6 +183,11 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     canSeeSensitive: viewerFlags.canSeeSensitive,
   });
   const isSeriesMember = attendance !== null;
+  const canMarkOccurrenceAttendance =
+    !!seriesId &&
+    !!user &&
+    !isGuestViewer &&
+    (isOrganizer || viewerFlags.isParticipant || isSeriesMember);
   const isJoined =
     viewerFlags.isParticipant || localGuest !== null || isOrganizer || isSeriesMember;
   const isPendingApproval = !isOrganizer && myStatus === 'aguardando-aprovacao';
@@ -260,7 +265,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   };
 
   const handleSetAttendance = async (status: 'vou' | 'nao-vou') => {
-    if (!isSeriesMember && !seriesId) return;
+    if (!canMarkOccurrenceAttendance) return;
     setAttendanceBusy(true);
     setError('');
     try {
@@ -297,9 +302,17 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const convidadoList = participants.filter((p) => p.status === 'convidado');
   const aguardandoList = participants.filter((p) => p.status === 'aguardando-aprovacao');
   const statsConfirmed = match?.participantStatsPreview?.dentroCount ?? 0;
-  const confirmed = canSeeParticipantNames ? dentroList.length : statsConfirmed;
+  const occurrenceConfirmed =
+    seriesId && attendance?.summary != null ? attendance.summary.vou : null;
+  const confirmed =
+    occurrenceConfirmed !== null
+      ? occurrenceConfirmed
+      : canSeeParticipantNames
+        ? dentroList.length
+        : statsConfirmed;
   const remaining = Math.max(0, spots - confirmed);
   const progressPercent = spots > 0 ? (confirmed / spots) * 100 : 0;
+  const defaultAttendanceSummary = { vou: 0, naoVou: 0, pendente: 0 };
   const canShare = canManage && !!user && !isGuestViewer;
 
   const handleApproveParticipant = async (participantId: string) => {
@@ -468,7 +481,8 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     seriesId,
     attendance,
     myAttendanceStatus: attendance?.myStatus ?? null,
-    attendanceSummary: attendance?.summary ?? null,
+    attendanceSummary: attendance?.summary ?? defaultAttendanceSummary,
+    canMarkOccurrenceAttendance,
     isSeriesMember,
     attendanceBusy,
     handleSetAttendance,

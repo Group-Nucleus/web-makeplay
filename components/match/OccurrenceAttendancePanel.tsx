@@ -8,14 +8,21 @@ export function OccurrenceAttendancePanel({
   summary,
   busy,
   onSetStatus,
+  embedded = false,
 }: {
   myStatus: OccurrenceAttendanceStatus | null;
   summary: OccurrenceAttendanceSummaryDto;
   busy?: boolean;
   onSetStatus: (status: 'vou' | 'nao-vou') => void;
+  embedded?: boolean;
 }) {
   return (
-    <section className="mb-6 rounded-xl border border-[#2a2a2a] bg-[#1A1A1A] p-4">
+    <section
+      className={
+        embedded
+          ? 'pt-1'
+          : 'mb-6 rounded-xl border border-[#2a2a2a] bg-[#1A1A1A] p-4'
+      }>
       <h3 className="mb-3 text-xs font-bold tracking-wider text-white">PRESENÇA NESTA SEMANA</h3>
       <div className="mb-4 flex gap-2">
         <button

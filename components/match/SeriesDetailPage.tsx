@@ -14,10 +14,14 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { OccurrenceAttendancePanel } from '@/components/match/OccurrenceAttendancePanel';
 import { PlayerSection, sectionAccent } from '@/components/match/MatchDetailSections';
 import { useSeriesDetail } from '@/lib/hooks/useSeriesDetail';
 import { useAuth } from '@/lib/auth/context';
+import type { OccurrenceAttendanceDto } from '@/lib/api/types/match';
 import { matchPathWithCode } from '@/lib/guestRoutes';
+import { getMatchDetail } from '@/lib/repositories/match';
+import { setOccurrenceAttendance } from '@/lib/repositories/match-series';
 import { formatMatchSchedule } from '@/lib/mappers/match';
 import type { SeriesOccurrenceDto } from '@/lib/api/types/match-series';
 
@@ -37,6 +41,8 @@ export function SeriesDetailPage({
   const vm = useSeriesDetail(seriesId, inviteCode);
   const { user } = useAuth();
   const [panel, setPanel] = useState<Panel>('main');
+  const [nextAttendance, setNextAttendance] = useState<OccurrenceAttendanceDto | null>(null);
+  const [nextAttendanceBusy, setNextAttendanceBusy] = useState(false);
 
   const nextOccurrence = useMemo(
     () => pickNextOccurrence(vm.occurrences),
@@ -56,7 +62,42 @@ export function SeriesDetailPage({
       )
     : vm.match?.nextMatch ?? '';
 
-  const statusLabel = memberStatusLabel(vm);
+  const canMarkNextAttendance =
+    !!user &&
+    !vm.isGuestViewer &&
+    vm.isJoined &&
+    !vm.isPendingApproval &&
+    !!nextOccurrence;
+
+  const statusLabel = canMarkNextAttendance ? null : memberStatusLabel(vm);
+
+  useEffect(() => {
+    if (!nextOccurrence?.id || !user) {
+      setNextAttendance(null);
+      return;
+    }
+    let cancelled = false;
+    void getMatchDetail(nextOccurrence.id, inviteCode).then((detail) => {
+      if (!cancelled) setNextAttendance(detail.attendance ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [nextOccurrence?.id, user, inviteCode]);
+
+  const handleSetNextAttendance = async (status: 'vou' | 'nao-vou') => {
+    if (!nextOccurrence?.id) return;
+    setNextAttendanceBusy(true);
+    try {
+      await setOccurrenceAttendance(nextOccurrence.id, status);
+      const detail = await getMatchDetail(nextOccurrence.id, inviteCode);
+      setNextAttendance(detail.attendance ?? null);
+    } catch {
+      //
+    } finally {
+      setNextAttendanceBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!vm.canManage && panel !== 'main') {
@@ -165,26 +206,30 @@ export function SeriesDetailPage({
 
       <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row">
         {/* Coluna esquerda: identidade da pelada */}
-        <aside className="w-full shrink-0 lg:w-[360px] xl:w-[400px]">
-          <div className="overflow-hidden rounded-2xl bg-[#1A1A1A]">
-            <div
-              className="relative h-44 bg-cover bg-center sm:h-52 lg:h-56"
-              style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-              <div className="absolute bottom-0 p-4 sm:p-5">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#9A9A9A]">
-                  Pelada fixa
-                </p>
-                <h1 className="text-2xl font-bold text-white sm:text-3xl">{match.title}</h1>
-                {vm.organizerName && (
-                  <p className="mt-1 text-sm text-[#ccc]">Presidente: {vm.organizerName}</p>
-                )}
+        <aside className="w-full shrink-0 lg:w-[300px] xl:w-[320px]">
+          <div className="lg:sticky lg:top-6">
+            <div className="rounded-2xl border border-[#2a2a2a] bg-[#121212] p-5">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-[#BFFF00]">
+                Pelada fixa
+              </p>
+              <div className="mb-5 flex items-start gap-3">
+                <div
+                  className="h-16 w-16 shrink-0 rounded-xl bg-cover bg-center ring-1 ring-[#333]"
+                  style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}
+                  role="img"
+                  aria-label={match.title}
+                />
+                <div className="min-w-0">
+                  <h1 className="text-xl font-bold leading-tight text-white">{match.title}</h1>
+                  {vm.organizerName && (
+                    <p className="mt-1 text-xs text-[#888]">Presidente: {vm.organizerName}</p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <SeriesSidebarActions vm={vm} hasUser={!!user} />
+              <SeriesSidebarActions vm={vm} hasUser={!!user} />
 
-            <div className="space-y-2 border-t border-[#2a2a2a] px-4 py-4 text-sm">
+            <div className="mt-4 space-y-2 border-t border-[#2a2a2a] pt-4 text-sm">
               {match.location && (
                 <p className="text-[#888]">
                   {match.distance ? `${match.distance} • ` : ''}
@@ -206,6 +251,7 @@ export function SeriesDetailPage({
                   <Copy className="h-4 w-4 shrink-0 text-[#BFFF00]" />
                 </button>
               )}
+            </div>
             </div>
           </div>
 
@@ -242,22 +288,16 @@ export function SeriesDetailPage({
             </div>
           ) : (
             <>
-              <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">{match.title}</h2>
-                  {vm.organizerName && (
-                    <p className="mt-1 text-sm text-[#888]">Presidente: {vm.organizerName}</p>
-                  )}
-                </div>
-                {vm.canManage && (
+              {vm.canManage && (
+                <div className="mb-6 hidden justify-end lg:flex">
                   <button
                     type="button"
                     className="shrink-0 text-sm font-semibold text-[#BFFF00]"
                     onClick={() => void vm.handleShareInvite()}>
                     Editar
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               <section className="mb-8">
                 <p className="mb-3 text-sm text-[#888]">
@@ -271,36 +311,44 @@ export function SeriesDetailPage({
                 </p>
 
                 {nextOccurrence ? (
-                  <Link
-                    href={matchPathWithCode(nextOccurrence.id, nextOccurrence.inviteCode)}
-                    className="block overflow-hidden rounded-2xl bg-[#1A1A1A] transition-colors hover:bg-[#222] lg:max-w-xl">
-                    <div
-                      className="relative aspect-[16/10] bg-cover bg-center lg:aspect-[2/1]"
-                      style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                      <h3 className="absolute bottom-3 left-4 text-xl font-bold text-white sm:text-2xl">
-                        {match.title}
-                      </h3>
-                    </div>
-                    <div className="space-y-1 p-4 sm:p-5">
-                      {match.location && (
-                        <p className="text-sm text-[#888]">
-                          {match.distance ?? ''}
-                          {match.distance ? ' • ' : ''}
-                          {match.location}
+                  <div className="overflow-hidden rounded-2xl bg-[#1A1A1A] lg:max-w-xl">
+                    <Link
+                      href={matchPathWithCode(nextOccurrence.id, nextOccurrence.inviteCode)}
+                      className="block transition-colors hover:bg-[#222]">
+                      <div
+                        className="relative aspect-[16/10] bg-cover bg-center lg:aspect-[2/1]"
+                        style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                        <p className="absolute bottom-3 left-4 text-sm font-bold text-[#BFFF00]">
+                          Ver detalhes da semana →
                         </p>
-                      )}
-                      {nextSchedule && <p className="text-sm text-[#888]">{nextSchedule}</p>}
+                      </div>
+                      <div className="space-y-1 p-4 sm:p-5">
+                        {match.location && (
+                          <p className="text-sm text-[#888]">
+                            {match.distance ?? ''}
+                            {match.distance ? ' • ' : ''}
+                            {match.location}
+                          </p>
+                        )}
+                        {nextSchedule && <p className="text-sm text-[#888]">{nextSchedule}</p>}
+                      </div>
+                    </Link>
+                    <div className="border-t border-[#2a2a2a] px-4 pb-4 sm:px-5 sm:pb-5">
                       <NextGameStatus
                         statusLabel={statusLabel}
                         vm={vm}
-                        onJoin={(e) => {
-                          e.preventDefault();
-                          void vm.handleRequestToJoin();
-                        }}
+                        canMarkAttendance={canMarkNextAttendance}
+                        myAttendanceStatus={nextAttendance?.myStatus ?? null}
+                        attendanceSummary={
+                          nextAttendance?.summary ?? { vou: 0, naoVou: 0, pendente: 0 }
+                        }
+                        attendanceBusy={nextAttendanceBusy}
+                        onSetAttendance={(s) => void handleSetNextAttendance(s)}
+                        onJoin={() => void vm.handleRequestToJoin()}
                       />
                     </div>
-                  </Link>
+                  </div>
                 ) : (
                   <p className="rounded-2xl bg-[#1A1A1A] p-6 text-center text-sm text-[#888] lg:max-w-xl">
                     Nenhuma semana agendada.
@@ -411,12 +459,34 @@ function SeriesSidebarActions({
 function NextGameStatus({
   statusLabel,
   vm,
+  canMarkAttendance,
+  myAttendanceStatus,
+  attendanceSummary,
+  attendanceBusy,
+  onSetAttendance,
   onJoin,
 }: {
   statusLabel: string | null;
   vm: ReturnType<typeof useSeriesDetail>;
-  onJoin: (e: React.MouseEvent) => void;
+  canMarkAttendance: boolean;
+  myAttendanceStatus: OccurrenceAttendanceDto['myStatus'];
+  attendanceSummary: OccurrenceAttendanceDto['summary'];
+  attendanceBusy: boolean;
+  onSetAttendance: (status: 'vou' | 'nao-vou') => void;
+  onJoin: () => void;
 }) {
+  if (canMarkAttendance) {
+    return (
+      <OccurrenceAttendancePanel
+        myStatus={myAttendanceStatus}
+        summary={attendanceSummary}
+        busy={attendanceBusy}
+        onSetStatus={onSetAttendance}
+        embedded
+      />
+    );
+  }
+
   return (
     <div className="pt-2">
       {statusLabel ? (

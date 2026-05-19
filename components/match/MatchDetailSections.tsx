@@ -302,7 +302,7 @@ export function MatchSlotsGrid({
             </div>
           );
         })}
-        {Array.from({ length: Math.min(freeCount, 12) }).map((_, i) => (
+        {Array.from({ length: freeCount }).map((_, i) => (
           <EmptySlot key={`free-${i}`} />
         ))}
       </div>
@@ -314,7 +314,7 @@ export function MatchSlotsGrid({
       {Array.from({ length: Math.min(filledCount, spots) }).map((_, i) => (
         <OccupiedSlot key={`occ-${i}`} />
       ))}
-      {Array.from({ length: Math.min(freeCount, 12) }).map((_, i) => (
+      {Array.from({ length: freeCount }).map((_, i) => (
         <EmptySlot key={`free-${i}`} />
       ))}
     </div>
