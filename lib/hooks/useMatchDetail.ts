@@ -324,10 +324,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   });
 
   const joinMutation = useMutation({
-    mutationFn: () =>
-      seriesId
-        ? joinSeries(seriesId, 'aguardando-aprovacao')
-        : joinMatch(matchId, 'aguardando-aprovacao'),
+    mutationFn: () => {
+      const code = privacy !== 'public' ? codeNorm || undefined : undefined;
+      return seriesId
+        ? joinSeries(seriesId, 'aguardando-aprovacao', code)
+        : joinMatch(matchId, 'aguardando-aprovacao', code);
+    },
     onSuccess: () => invalidate(),
     onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao participar'),
   });
@@ -385,7 +387,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     mutationFn: (participantId: string) => {
       const p = participants.find((x) => x.id === participantId);
       if (!p) throw new Error('Participante não encontrado');
-      if (!canManage && p.uid !== user?.uid) throw new Error('Sem permissão');
+      if (!canManage) throw new Error('Sem permissão');
       return toggleParticipantPaid(matchId, participantId, !p.isPaid);
     },
     onSuccess: () => invalidate(),

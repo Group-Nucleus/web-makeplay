@@ -218,7 +218,10 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
 
   // --- Mutations ---
   const joinMutation = useMutation({
-    mutationFn: () => joinSeries(seriesId, 'aguardando-aprovacao'),
+    mutationFn: () => {
+      const code = privacy !== 'public' ? codeNorm || undefined : undefined;
+      return joinSeries(seriesId, 'aguardando-aprovacao', code);
+    },
     onSuccess: () => invalidate(),
     onError: (e) => setError(e instanceof Error ? e.message : 'Erro ao entrar na pelada'),
   });

@@ -112,10 +112,14 @@ export async function getInviteByCode(code: string): Promise<InviteIndexDto | nu
   }
 }
 
-export async function joinMatch(matchId: string, status: ParticipantStatus): Promise<ParticipantDto> {
+export async function joinMatch(
+  matchId: string,
+  status: ParticipantStatus,
+  inviteCode?: string,
+): Promise<ParticipantDto> {
   return api<ParticipantDto>(`/matches/${matchId}/participants/join`, {
     method: 'POST',
-    body: { status },
+    body: inviteCode ? { status, inviteCode } : { status },
   });
 }
 

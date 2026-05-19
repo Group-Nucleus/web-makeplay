@@ -123,6 +123,7 @@ export function PlayerSection({
     <ParticipantSection title={title} accent={accent} count={players.length} showPaidCol={showPaidCol}>
       {players.map((p) => {
         const canSeePaid = isOrganizer || p.uid === currentUserId;
+        const canTogglePaid = isOrganizer;
         const isAdmin = !!p.uid && organizerUids.includes(p.uid);
         const isGuest = p.status === 'convidado';
         const isSelf = isViewerSelfInList(
@@ -153,16 +154,16 @@ export function PlayerSection({
                 )}
               </div>
             </div>
-            {showPaidCol && (
+            {showPaidCol && canSeePaid && (
               <button
                 type="button"
-                disabled={!canSeePaid}
-                onClick={() => canSeePaid && onTogglePaid(p.id)}
+                disabled={!canTogglePaid}
+                onClick={() => canTogglePaid && onTogglePaid(p.id)}
                 className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${
                   p.isPaid
                     ? 'bg-lime/20 text-lime'
                     : 'bg-line text-[#666]'
-                } ${!canSeePaid ? 'cursor-default opacity-50' : ''}`}>
+                } ${!canTogglePaid ? 'cursor-default' : ''}`}>
                 {p.isPaid ? 'Pago' : 'Pendente'}
               </button>
             )}

@@ -36,10 +36,11 @@ export async function getSeriesDetail(
 export async function joinSeries(
   seriesId: string,
   status: ParticipantStatus,
+  inviteCode?: string,
 ): Promise<SeriesParticipantDto> {
   return api<SeriesParticipantDto>(`/match-series/${seriesId}/participants/join`, {
     method: 'POST',
-    body: { status },
+    body: inviteCode ? { status, inviteCode } : { status },
   });
 }
 
