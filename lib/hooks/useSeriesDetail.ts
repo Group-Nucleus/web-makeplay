@@ -200,7 +200,6 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
     userId: user?.uid,
     isOrganizer,
     organizerUids,
-    canSeeSensitive: viewerFlags.canSeeSensitive,
   });
   const canShare = canManage && !!user && !isGuestViewer;
 

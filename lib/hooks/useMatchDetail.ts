@@ -236,7 +236,6 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     userId: user?.uid,
     isOrganizer,
     organizerUids,
-    canSeeSensitive: viewerFlags.canSeeSensitive,
   });
   const isSeriesMember = !!seriesId && viewerFlags.isParticipant;
   const canMarkOccurrenceAttendance =

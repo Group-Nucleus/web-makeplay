@@ -13,15 +13,9 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('canManageSeries', () => {
-  it('retorna true quando canSeeSensitive=true (permissão da API)', () => {
-    expect(
-      canManageSeries({ isOrganizer: false, organizerUids: [], canSeeSensitive: true }),
-    ).toBe(true);
-  });
-
   it('retorna true quando isOrganizer=true', () => {
     expect(
-      canManageSeries({ isOrganizer: true, organizerUids: [], canSeeSensitive: false }),
+      canManageSeries({ isOrganizer: true, organizerUids: [] }),
     ).toBe(true);
   });
 
@@ -31,9 +25,15 @@ describe('canManageSeries', () => {
         userId: 'uid-admin',
         isOrganizer: false,
         organizerUids: ['uid-outro', 'uid-admin'],
-        canSeeSensitive: false,
       }),
     ).toBe(true);
+  });
+
+  it('retorna false para participante com canSeeSensitive=true mas sem ser organizador', () => {
+    // canSeeSensitive é permissão de leitura, não de gestão
+    expect(
+      canManageSeries({ isOrganizer: false, organizerUids: [] }),
+    ).toBe(false);
   });
 
   it('retorna false para espectador comum sem nenhuma permissão', () => {
@@ -42,7 +42,6 @@ describe('canManageSeries', () => {
         userId: 'uid-visitante',
         isOrganizer: false,
         organizerUids: ['uid-org'],
-        canSeeSensitive: false,
       }),
     ).toBe(false);
   });
@@ -53,7 +52,6 @@ describe('canManageSeries', () => {
         userId: undefined,
         isOrganizer: false,
         organizerUids: ['uid-org'],
-        canSeeSensitive: false,
       }),
     ).toBe(false);
   });
@@ -64,7 +62,6 @@ describe('canManageSeries', () => {
         userId: 'uid-x',
         isOrganizer: false,
         organizerUids: [],
-        canSeeSensitive: false,
       }),
     ).toBe(false);
   });

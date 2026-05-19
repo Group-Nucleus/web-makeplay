@@ -5,9 +5,7 @@ export function canManageSeries(options: {
   userId?: string;
   isOrganizer: boolean;
   organizerUids: string[];
-  canSeeSensitive?: boolean;
 }): boolean {
-  if (options.canSeeSensitive) return true;
   if (options.isOrganizer) return true;
   if (options.userId && options.organizerUids.includes(options.userId)) return true;
   return false;
