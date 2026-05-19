@@ -271,20 +271,29 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   });
 
   const spots = doc?.spots ?? match?.spots ?? 0;
-  const dentroList = sortOrganizerFirst(participants.filter((p) => p.status === 'dentro'));
+  const dentroList = sortOrganizerFirst(
+    participants.filter((p) => p.status === 'dentro' || p.status === 'convidado'),
+  );
   const esperaList = participants.filter((p) => p.status === 'lista-espera');
   const foraList = participants.filter((p) => p.status === 'fora');
-  const convidadoList = participants.filter((p) => p.status === 'convidado');
+  const convidadoList: typeof dentroList = [];
   const aguardandoList = participants.filter((p) => p.status === 'aguardando-aprovacao');
-  const statsConfirmed = match?.participantStatsPreview?.dentroCount ?? 0;
-  const occurrenceConfirmed =
+
+  // For series, participantStatsPreview is always zeroed by the API — never use it.
+  // Roster capacity is determined solely by participants[].status === 'dentro'.
+  // Weekly attendance (attendance.summary.vou) is a separate concept — see weeklyVouCount.
+  const dentroCount = participants.filter((p) => p.status === 'dentro').length;
+  const confirmed = seriesId
+    ? dentroCount
+    : canSeeParticipantNames
+      ? dentroList.length
+      : (match?.participantStatsPreview?.dentroCount ?? 0);
+
+  // How many members confirmed attendance for this specific occurrence ("vou").
+  // Only meaningful for series; null for one-off matches.
+  const weeklyVouCount: number | null =
     seriesId && attendance?.summary != null ? attendance.summary.vou : null;
-  const confirmed =
-    occurrenceConfirmed !== null
-      ? occurrenceConfirmed
-      : canSeeParticipantNames
-        ? dentroList.length
-        : statsConfirmed;
+
   const remaining = Math.max(0, spots - confirmed);
   const progressPercent = spots > 0 ? (confirmed / spots) * 100 : 0;
   const defaultAttendanceSummary = { vou: 0, naoVou: 0, pendente: 0 };
@@ -497,6 +506,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     attendance,
     myAttendanceStatus: attendance?.myStatus ?? null,
     attendanceSummary: attendance?.summary ?? defaultAttendanceSummary,
+    weeklyVouCount,
     canMarkOccurrenceAttendance,
     isSeriesMember,
     attendanceBusy: setAttendanceMutation.isPending,

@@ -103,13 +103,20 @@ export function matchDocumentFromApiDetail(detail: MatchDetailResponseDto): Matc
   };
 }
 
+// Series participants arrive with underscore statuses (lista_espera, aguardando_aprovacao).
+// Normalise to the hyphenated internal format used throughout the front-end.
+function normalizeParticipantStatus(raw: string): ParticipantDocument['status'] {
+  return raw.replace(/_/g, '-') as ParticipantDocument['status'];
+}
+
 export function participantFromApiDto(p: ParticipantDto): ParticipantDocument {
   return {
     id: p.id,
     uid: p.uid,
+    guestToken: p.guestToken ?? null,
     name: p.name,
     position: p.position,
-    status: p.status,
+    status: normalizeParticipantStatus(p.status as string),
     isPaid: p.isPaid,
     addedBy: p.addedBy,
     addedAt: p.addedAt,

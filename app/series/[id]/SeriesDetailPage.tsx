@@ -186,12 +186,6 @@ export function SeriesDetailPage({
         accent={sectionAccent('fora')}
         {...playerSectionProps}
       />
-      <PlayerSection
-        title="CONVIDADOS"
-        players={vm.convidadoList}
-        accent={sectionAccent('convidado')}
-        {...playerSectionProps}
-      />
     </>
   );
 

@@ -11,6 +11,7 @@ export type ParticipantStatus =
 export interface ParticipantDocument {
   id: string;
   uid: string | null;
+  guestToken?: string | null;
   name: string;
   position?: string;
   status: ParticipantStatus;

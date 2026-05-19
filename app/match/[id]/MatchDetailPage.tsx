@@ -578,7 +578,6 @@ function PlayersTab({
     vm.dentroList.length === 0 &&
     vm.esperaList.length === 0 &&
     vm.foraList.length === 0 &&
-    vm.convidadoList.length === 0 &&
     vm.aguardandoList.length === 0;
 
   return (
@@ -663,13 +662,6 @@ function PlayersTab({
         accent={sectionAccent('fora')}
         {...playerSectionProps}
       />
-      <PlayerSection
-        title="CONVIDADOS"
-        players={vm.convidadoList}
-        accent={sectionAccent('convidado')}
-        {...playerSectionProps}
-      />
-
       {empty && <p className="py-8 text-center text-muted">Nenhum jogador ainda.</p>}
     </div>
   );

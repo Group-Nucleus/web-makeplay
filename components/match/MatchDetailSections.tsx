@@ -124,6 +124,7 @@ export function PlayerSection({
       {players.map((p) => {
         const canSeePaid = isOrganizer || p.uid === currentUserId;
         const isAdmin = !!p.uid && organizerUids.includes(p.uid);
+        const isGuest = p.status === 'convidado';
         const isSelf = isViewerSelfInList(
           p,
           isOrganizer,
@@ -146,6 +147,9 @@ export function PlayerSection({
                 {p.position && <p className="text-[10px] text-muted">{p.position}</p>}
                 {isAdmin && (
                   <span className="text-[9px] font-bold uppercase text-lime">Admin</span>
+                )}
+                {isGuest && (
+                  <span className="text-[9px] font-bold uppercase text-[#888]">Convidado</span>
                 )}
               </div>
             </div>
@@ -274,6 +278,7 @@ export function MatchSlotsGrid({
       <div className={slotGridClass}>
         {players.map((p) => {
           const isOrg = organizerUid && p.uid === organizerUid;
+          const isGuest = p.status === 'convidado';
           const isSelf = isViewerSelfInList(
             p,
             isOrganizerViewer,
@@ -296,6 +301,9 @@ export function MatchSlotsGrid({
               {isSelf && <ViewerSelfLabel className="mb-1" />}
               {isOrg && (
                 <span className="mb-1 text-[9px] font-bold text-lime">ORGANIZADOR</span>
+              )}
+              {isGuest && !isOrg && (
+                <span className="mb-1 text-[9px] font-bold uppercase text-[#888]">Convidado</span>
               )}
               <p className="truncate text-center text-xs font-semibold text-white">{p.name}</p>
               <p className="text-[10px] font-bold text-[#666]">CONFIRMADO</p>

@@ -203,10 +203,12 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
   });
   const canShare = canManage && !!user && !isGuestViewer;
 
-  const dentroList = participants.filter((p) => p.status === 'dentro');
+  const dentroList = participants.filter(
+    (p) => p.status === 'dentro' || p.status === 'convidado',
+  );
   const esperaList = participants.filter((p) => p.status === 'lista-espera');
   const foraList = participants.filter((p) => p.status === 'fora');
-  const convidadoList = participants.filter((p) => p.status === 'convidado');
+  const convidadoList: typeof dentroList = [];
   const aguardandoList = participants.filter((p) => p.status === 'aguardando-aprovacao');
   const statsConfirmed = match?.participantStatsPreview?.dentroCount ?? 0;
   const confirmed = canSeeParticipantNames ? dentroList.length : statsConfirmed;
