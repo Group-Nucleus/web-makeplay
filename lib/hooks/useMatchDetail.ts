@@ -495,6 +495,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     guestJoinOpen,
     setGuestJoinOpen,
     openGuestJoin: () => { if (canGuestJoin) setGuestJoinOpen(true); },
+    myStatus,
     isJoined,
     isPendingApproval,
     viewerJoined,

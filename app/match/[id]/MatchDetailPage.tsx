@@ -458,6 +458,65 @@ function TabBar({
   );
 }
 
+const GUEST_STATUS_CONFIG = {
+  'aguardando-aprovacao': {
+    border: 'border-yellow-500/40',
+    bg: 'bg-yellow-500/10',
+    dot: 'bg-yellow-400',
+    label: 'Aguardando aprovação',
+    message: 'O organizador irá confirmar (ou não) a tua vaga em breve.',
+  },
+  dentro: {
+    border: 'border-lime/40',
+    bg: 'bg-lime/10',
+    dot: 'bg-lime',
+    label: 'Confirmado!',
+    message: 'A tua vaga está confirmada. Bora jogar!',
+  },
+  convidado: {
+    border: 'border-lime/40',
+    bg: 'bg-lime/10',
+    dot: 'bg-lime',
+    label: 'Convidado',
+    message: 'Estás na lista como convidado desta partida.',
+  },
+  'lista-espera': {
+    border: 'border-orange-500/40',
+    bg: 'bg-orange-500/10',
+    dot: 'bg-orange-400',
+    label: 'Lista de espera',
+    message: 'Estás na fila. Avisamos quando abrir uma vaga.',
+  },
+  fora: {
+    border: 'border-danger/40',
+    bg: 'bg-danger/10',
+    dot: 'bg-danger',
+    label: 'Não aprovado',
+    message: 'A tua solicitação não foi aceite pelo organizador.',
+  },
+} satisfies Partial<Record<import('@/lib/models/match-document').ParticipantStatus, {
+  border: string; bg: string; dot: string; label: string; message: string;
+}>>;
+
+function GuestRequestStatus({
+  status,
+}: {
+  status: import('@/lib/models/match-document').ParticipantStatus | null;
+}) {
+  const cfg = status ? GUEST_STATUS_CONFIG[status as keyof typeof GUEST_STATUS_CONFIG] : null;
+  if (!cfg) return null;
+
+  return (
+    <div className={`rounded-xl border p-5 ${cfg.border} ${cfg.bg}`}>
+      <div className="mb-2 flex items-center gap-2">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${cfg.dot}`} />
+        <span className="text-sm font-bold text-white">{cfg.label}</span>
+      </div>
+      <p className="text-sm leading-relaxed text-dim">{cfg.message}</p>
+    </div>
+  );
+}
+
 function InfoTab({
   vm,
   organizerUid,
@@ -467,6 +526,16 @@ function InfoTab({
   organizerUid?: string;
   userId?: string;
 }) {
+  // Guests who have already submitted a join request see only their status —
+  // the players grid and capacity bar are not relevant to them.
+  if (vm.isGuestViewer && vm.isJoined) {
+    return (
+      <div>
+        <GuestRequestStatus status={vm.myStatus} />
+      </div>
+    );
+  }
+
   return (
   <div>
     {vm.isGuestViewer && vm.canGuestJoin && (
@@ -481,12 +550,6 @@ function InfoTab({
           Entrar só com o meu nome
         </button>
       </div>
-    )}
-
-    {vm.isGuestViewer && vm.isJoined && vm.isPendingApproval && (
-      <p className="mb-4 rounded-xl border border-line bg-card px-4 py-3 text-sm text-dim">
-        Pedido enviado. O organizador confirma a tua vaga em breve.
-      </p>
     )}
 
     <AttendanceProgress
