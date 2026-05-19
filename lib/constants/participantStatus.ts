@@ -4,7 +4,6 @@ export const PARTICIPANT_STATUS_LABEL: Record<ParticipantStatus, string> = {
   dentro: 'Dentro',
   'lista-espera': 'Lista de espera',
   fora: 'Fora',
-  convidado: 'Convidado',
   'aguardando-aprovacao': 'Aguardando aprovação',
 };
 
@@ -13,5 +12,4 @@ export const ORGANIZER_MOVABLE_STATUSES: ParticipantStatus[] = [
   'dentro',
   'lista-espera',
   'fora',
-  'convidado',
 ];

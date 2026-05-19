@@ -5,8 +5,9 @@ export type ParticipantStatus =
   | 'dentro'
   | 'lista-espera'
   | 'fora'
-  | 'convidado'
   | 'aguardando-aprovacao';
+
+export type ParticipantType = 'member' | 'guest';
 
 export interface ParticipantDocument {
   id: string;
@@ -15,6 +16,7 @@ export interface ParticipantDocument {
   name: string;
   position?: string;
   status: ParticipantStatus;
+  participantType: ParticipantType;
   isPaid: boolean;
   addedBy: string;
   addedAt: string;

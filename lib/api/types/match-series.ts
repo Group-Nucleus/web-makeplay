@@ -1,5 +1,5 @@
 import type { MatchPrivacy, MatchType, SportType } from '@/lib/models/match';
-import type { ParticipantStatus } from '@/lib/models/match-document';
+import type { ParticipantStatus, ParticipantType } from '@/lib/models/match-document';
 import type { MatchStatus, OccurrenceAttendanceStatus } from '@/lib/api/types/match';
 
 export interface SeriesListItemDto {
@@ -56,6 +56,7 @@ export interface SeriesParticipantDto {
   name: string;
   position?: string;
   status: ParticipantStatus;
+  participantType: ParticipantType;
   isPaid: boolean;
   monthKey?: string | null;
   addedBy: string;

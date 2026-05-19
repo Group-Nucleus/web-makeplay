@@ -203,12 +203,9 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
   });
   const canShare = canManage && !!user && !isGuestViewer;
 
-  const dentroList = participants.filter(
-    (p) => p.status === 'dentro' || p.status === 'convidado',
-  );
+  const dentroList = participants.filter((p) => p.status === 'dentro');
   const esperaList = participants.filter((p) => p.status === 'lista-espera');
   const foraList = participants.filter((p) => p.status === 'fora');
-  const convidadoList: typeof dentroList = [];
   const aguardandoList = participants.filter((p) => p.status === 'aguardando-aprovacao');
   const statsConfirmed = match?.participantStatsPreview?.dentroCount ?? 0;
   const confirmed = canSeeParticipantNames ? dentroList.length : statsConfirmed;
@@ -294,7 +291,6 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
     dentroList,
     esperaList,
     foraList,
-    convidadoList,
     aguardandoList,
     handleRequestToJoin: async () => {
       if (joinMutation.isPending || isOrganizer || isGuestViewer || !apiSessionReady) return;

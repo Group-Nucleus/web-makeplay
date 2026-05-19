@@ -260,6 +260,7 @@ function makeParticipantDto(overrides?: Partial<ParticipantDto>): ParticipantDto
     uid: 'uid-player',
     name: 'Jogador Teste',
     status: 'dentro',
+    participantType: 'member',
     isPaid: false,
     addedBy: 'uid-org',
     addedAt: '2025-06-01T00:00:00Z',

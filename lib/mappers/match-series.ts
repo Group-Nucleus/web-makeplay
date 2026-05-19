@@ -14,6 +14,7 @@ export function seriesParticipantFromApiDto(p: SeriesParticipantDto): Participan
     name: p.name,
     position: p.position,
     status: p.status,
+    participantType: p.participantType,
     isPaid: p.isPaid,
     addedBy: p.addedBy,
     addedAt: p.addedAt,

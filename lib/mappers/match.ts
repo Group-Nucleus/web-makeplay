@@ -117,6 +117,7 @@ export function participantFromApiDto(p: ParticipantDto): ParticipantDocument {
     name: p.name,
     position: p.position,
     status: normalizeParticipantStatus(p.status as string),
+    participantType: p.participantType,
     isPaid: p.isPaid,
     addedBy: p.addedBy,
     addedAt: p.addedAt,

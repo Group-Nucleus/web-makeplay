@@ -1,6 +1,6 @@
 import type { CreateWeeklyMatchResponseDto } from '@/lib/api/types/match-series';
 import type { MatchPrivacy, MatchType, SportType } from '@/lib/models/match';
-import type { ParticipantStatus } from '@/lib/models/match-document';
+import type { ParticipantStatus, ParticipantType } from '@/lib/models/match-document';
 
 export type InviteTarget = 'match' | 'series';
 export type MatchStatus = 'scheduled' | 'open' | 'cancelled' | 'completed';
@@ -55,6 +55,7 @@ export interface ParticipantDto {
   name: string;
   position?: string;
   status: ParticipantStatus;
+  participantType: ParticipantType;
   isPaid: boolean;
   addedBy: string;
   addedAt: string;

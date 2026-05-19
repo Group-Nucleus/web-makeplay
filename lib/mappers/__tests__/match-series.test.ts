@@ -19,6 +19,7 @@ function makeSeriesParticipantDto(overrides?: Partial<SeriesParticipantDto>): Se
     uid: 'uid-1',
     name: 'Jogador Série',
     status: 'dentro',
+    participantType: 'member',
     isPaid: false,
     addedBy: 'uid-org',
     addedAt: '2025-06-01T00:00:00Z',
@@ -34,9 +35,17 @@ describe('seriesParticipantFromApiDto', () => {
     expect(result.uid).toBe('uid-1');
     expect(result.name).toBe('Jogador Série');
     expect(result.status).toBe('dentro');
+    expect(result.participantType).toBe('member');
     expect(result.isPaid).toBe(true);
     expect(result.position).toBe('Atacante');
     expect(result.addedBy).toBe('uid-org');
+  });
+
+  it('preserva participantType guest', () => {
+    const result = seriesParticipantFromApiDto(
+      makeSeriesParticipantDto({ participantType: 'guest', uid: null }),
+    );
+    expect(result.participantType).toBe('guest');
   });
 
   it('aceita uid null (participante sem conta)', () => {

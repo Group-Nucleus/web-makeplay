@@ -272,11 +272,10 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
 
   const spots = doc?.spots ?? match?.spots ?? 0;
   const dentroList = sortOrganizerFirst(
-    participants.filter((p) => p.status === 'dentro' || p.status === 'convidado'),
+    participants.filter((p) => p.status === 'dentro'),
   );
   const esperaList = participants.filter((p) => p.status === 'lista-espera');
   const foraList = participants.filter((p) => p.status === 'fora');
-  const convidadoList: typeof dentroList = [];
   const aguardandoList = participants.filter((p) => p.status === 'aguardando-aprovacao');
 
   // For series, participantStatsPreview is always zeroed by the API — never use it.
@@ -522,7 +521,6 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     dentroList,
     esperaList,
     foraList,
-    convidadoList,
     aguardandoList,
     handleGuestJoin: async (name: string) => { await guestJoinMutation.mutateAsync(name); },
     handleRequestToJoin: async () => {

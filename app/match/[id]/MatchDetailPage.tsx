@@ -473,13 +473,6 @@ const GUEST_STATUS_CONFIG = {
     label: 'Confirmado!',
     message: 'A tua vaga está confirmada. Bora jogar!',
   },
-  convidado: {
-    border: 'border-lime/40',
-    bg: 'bg-lime/10',
-    dot: 'bg-lime',
-    label: 'Convidado',
-    message: 'Estás na lista como convidado desta partida.',
-  },
   'lista-espera': {
     border: 'border-orange-500/40',
     bg: 'bg-orange-500/10',

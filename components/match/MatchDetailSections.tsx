@@ -8,7 +8,6 @@ const SECTION_ACCENTS = {
   dentro: '#BFFF00',
   'lista-espera': '#C4915C',
   fora: '#FF4136',
-  convidado: '#0D73EC',
   'aguardando-aprovacao': '#C4915C',
 } as const;
 
@@ -125,7 +124,7 @@ export function PlayerSection({
         const canSeePaid = isOrganizer || p.uid === currentUserId;
         const canTogglePaid = isOrganizer;
         const isAdmin = !!p.uid && organizerUids.includes(p.uid);
-        const isGuest = p.status === 'convidado';
+        const isGuest = p.participantType === 'guest';
         const isSelf = isViewerSelfInList(
           p,
           isOrganizer,
@@ -279,7 +278,7 @@ export function MatchSlotsGrid({
       <div className={slotGridClass}>
         {players.map((p) => {
           const isOrg = organizerUid && p.uid === organizerUid;
-          const isGuest = p.status === 'convidado';
+          const isGuest = p.participantType === 'guest';
           const isSelf = isViewerSelfInList(
             p,
             isOrganizerViewer,
