@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import { CreateMatchModal } from '@/components/match/CreateMatchModal';
@@ -9,6 +10,7 @@ import type { MatchType } from '@/lib/models/match';
 import { useAuth } from '@/lib/auth/context';
 import { POLL_HOME_MATCHES_MS } from '@/lib/constants';
 import { matchListItemFromApiItem } from '@/lib/mappers/match';
+import { groupWeeklyMatchesForHome } from '@/lib/utils/seriesAccess';
 import type { Match } from '@/lib/models/match';
 import { listMatches } from '@/lib/repositories/match';
 import { getUserDocument } from '@/lib/repositories/user';
@@ -22,6 +24,7 @@ function mergeMatches(lists: Match[][]): Match[] {
 }
 
 export function HomePage() {
+  const router = useRouter();
   const { user, apiSessionReady } = useAuth();
   const [sections, setSections] = useState<Section[]>([
     { id: 'weekly', data: [] },
@@ -52,8 +55,8 @@ export function HomePage() {
         part.items.map(matchListItemFromApiItem),
       ]);
       setSections([
-        { id: 'weekly', data: all.filter((m) => m.type === 'weekly') },
-        { id: 'oneoff', data: all.filter((m) => m.type === 'oneoff') },
+        { id: 'weekly', data: groupWeeklyMatchesForHome(all) },
+        { id: 'oneoff', data: all.filter((m) => m.type === 'oneoff' && !m.seriesId) },
       ]);
     } catch (e) {
       console.error('[home]', e);
@@ -96,7 +99,12 @@ export function HomePage() {
         open={createOpen}
         type={createType}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => void load()}
+        onCreated={(result) => {
+          void load();
+          if (result.kind === 'weekly') {
+            router.push(`/series/${result.seriesId}`);
+          }
+        }}
       />
       <div className="mb-8 max-w-2xl">
         <p className="mb-1 text-[#888]">Olá, {greeting}!</p>

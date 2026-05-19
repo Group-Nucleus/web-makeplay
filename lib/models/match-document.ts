@@ -1,3 +1,4 @@
+import type { MatchStatus } from '@/lib/api/types/match';
 import type { MatchPrivacy, MatchType, SportType } from '@/lib/models/match';
 
 export type ParticipantStatus =
@@ -19,6 +20,11 @@ export interface ParticipantDocument {
 }
 
 export interface MatchDocument {
+  seriesId?: string | null;
+  scheduledAt?: string | null;
+  monthKey?: string | null;
+  matchStatus?: MatchStatus;
+  cancelNote?: string | null;
   type: MatchType;
   sport: SportType;
   name: string;

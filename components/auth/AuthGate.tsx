@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 
 import { useAuth } from '@/lib/auth/context';
 import { LoginPage } from '@/components/auth/LoginPage';
-import { isGuestPathname, matchPathWithCode } from '@/lib/guestRoutes';
+import { isGuestPathname, matchPathWithCode, seriesPathWithCode } from '@/lib/guestRoutes';
 import { getGuestInviteContext } from '@/lib/storage/guestInvite';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
     const invite = getGuestInviteContext();
     if (invite) {
-      router.replace(matchPathWithCode(invite.matchId, invite.code));
+      router.replace(
+        invite.target === 'series'
+          ? seriesPathWithCode(invite.seriesId, invite.code)
+          : matchPathWithCode(invite.matchId, invite.code),
+      );
       return;
     }
 

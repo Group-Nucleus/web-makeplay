@@ -1,11 +1,10 @@
-import { matchPathWithCode } from '@/lib/guestRoutes';
+import { matchPathWithCode, seriesPathWithCode } from '@/lib/guestRoutes';
 
 const KEY = 'boraplay_guest_invite';
 
-export interface GuestInviteContext {
-  matchId: string;
-  code: string;
-}
+export type GuestInviteContext =
+  | { target: 'match'; matchId: string; code: string }
+  | { target: 'series'; seriesId: string; code: string };
 
 export function setGuestInviteContext(ctx: GuestInviteContext): void {
   if (typeof window === 'undefined') return;
@@ -17,8 +16,16 @@ export function getGuestInviteContext(): GuestInviteContext | null {
   const raw = sessionStorage.getItem(KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as GuestInviteContext;
-    if (parsed.matchId && parsed.code) return parsed;
+    const parsed = JSON.parse(raw) as GuestInviteContext & {
+      matchId?: string;
+      seriesId?: string;
+    };
+    if (parsed.target === 'series' && parsed.seriesId && parsed.code) {
+      return { target: 'series', seriesId: parsed.seriesId, code: parsed.code };
+    }
+    if (parsed.matchId && parsed.code) {
+      return { target: 'match', matchId: parsed.matchId, code: parsed.code };
+    }
   } catch {
     //
   }
@@ -30,9 +37,12 @@ export function clearGuestInviteContext(): void {
   sessionStorage.removeItem(KEY);
 }
 
-/** Destino após login: partida do convite, se existir no storage. */
+/** Destino após login: convite guardado no storage. */
 export function getPostLoginRedirectPath(): string {
   const invite = getGuestInviteContext();
-  if (invite) return matchPathWithCode(invite.matchId, invite.code);
-  return '/';
+  if (!invite) return '/';
+  if (invite.target === 'series') {
+    return seriesPathWithCode(invite.seriesId, invite.code);
+  }
+  return matchPathWithCode(invite.matchId, invite.code);
 }

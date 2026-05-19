@@ -20,6 +20,8 @@ export interface ParticipantStatsPreview {
 export interface Match {
   id: string;
   type: MatchType;
+  seriesId?: string | null;
+  matchStatus?: import('@/lib/api/types/match').MatchStatus;
   title: string;
   image?: string;
   nextMatch: string;

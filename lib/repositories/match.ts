@@ -1,7 +1,8 @@
 import { api } from '@/lib/api/client';
 import { getAccessToken } from '@/lib/api/token';
+import type { CreateWeeklyMatchResponseDto } from '@/lib/api/types/match-series';
 import type {
-  CreateMatchResponseDto,
+  CreateMatchApiResponse,
   InviteIndexDto,
   MatchDetailResponseDto,
   PaginatedMatchesDto,
@@ -10,6 +11,21 @@ import type {
 } from '@/lib/api/types/match';
 import type { CreateMatchForm } from '@/lib/models/match';
 import type { ParticipantStatus } from '@/lib/models/match-document';
+
+export type CreateMatchResult =
+  | { kind: 'oneoff'; matchId: string; inviteCode: string }
+  | {
+      kind: 'weekly';
+      seriesId: string;
+      seriesInviteCode: string;
+      occurrences: CreateWeeklyMatchResponseDto['occurrences'];
+    };
+
+function isWeeklyCreateResponse(
+  res: CreateMatchApiResponse,
+): res is CreateWeeklyMatchResponseDto {
+  return 'seriesId' in res && typeof res.seriesId === 'string';
+}
 
 export async function updateMatch(
   matchId: string,
@@ -21,12 +37,20 @@ export async function updateMatch(
   });
 }
 
-export async function createMatch(form: CreateMatchForm): Promise<string> {
-  const res = await api<CreateMatchResponseDto>('/matches', {
+export async function createMatch(form: CreateMatchForm): Promise<CreateMatchResult> {
+  const res = await api<CreateMatchApiResponse>('/matches', {
     method: 'POST',
     body: { ...form, sport: form.sport || 'soccer', venueId: form.venueId },
   });
-  return res.id;
+  if (isWeeklyCreateResponse(res)) {
+    return {
+      kind: 'weekly',
+      seriesId: res.seriesId,
+      seriesInviteCode: res.seriesInviteCode,
+      occurrences: res.occurrences,
+    };
+  }
+  return { kind: 'oneoff', matchId: res.id, inviteCode: res.inviteCode };
 }
 
 export function normalizeInviteIndexId(code: string | null | undefined): string {
@@ -34,7 +58,7 @@ export function normalizeInviteIndexId(code: string | null | undefined): string 
   return code.trim().toUpperCase();
 }
 
-function queryString(params: Record<string, string | number | undefined>): string {
+export function queryString(params: Record<string, string | number | undefined>): string {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== '') q.set(k, String(v));

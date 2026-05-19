@@ -15,6 +15,7 @@ import { POLL_MATCH_DETAIL_MS } from '@/lib/constants';
 import { buildInviteUrl } from '@/lib/config';
 import { matchPathWithCode } from '@/lib/guestRoutes';
 import { setGuestInviteContext } from '@/lib/storage/guestInvite';
+import type { OccurrenceAttendanceDto } from '@/lib/api/types/match';
 import {
   addMatchOrganizer,
   getInviteByCode,
@@ -27,8 +28,11 @@ import {
   removeMatchOrganizer,
   removeParticipant,
   toggleParticipantPaid,
+  updateMatch,
   updateParticipantStatus,
 } from '@/lib/repositories/match';
+import { joinSeries, leaveSeries, setOccurrenceAttendance } from '@/lib/repositories/match-series';
+import { canAccessPrivateMatch, canManageSeries } from '@/lib/utils/seriesAccess';
 import {
   getGuestParticipant,
   setGuestParticipant,
@@ -50,6 +54,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     isParticipant: false,
     myParticipantId: null as string | null,
     myStatus: null as ParticipantStatus | null,
+    canSeeSensitive: false,
   });
   const [localGuest, setLocalGuest] = useState<GuestParticipantRecord | null>(null);
   const [guestJoinOpen, setGuestJoinOpen] = useState(false);
@@ -59,6 +64,10 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const [shareFeedback, setShareFeedback] = useState('');
   const [canSeeParticipantNames, setCanSeeParticipantNames] = useState(false);
   const [managing, setManaging] = useState(false);
+  const [seriesId, setSeriesId] = useState<string | null>(null);
+  const [attendance, setAttendance] = useState<OccurrenceAttendanceDto | null>(null);
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
+  const [accessBlocked, setAccessBlocked] = useState(false);
 
   useEffect(() => {
     setLocalGuest(getGuestParticipant(matchId));
@@ -67,6 +76,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     setError('');
+    setAccessBlocked(false);
     const guestToken = localGuest?.guestToken;
     try {
       let detail;
@@ -89,28 +99,50 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       const m = matchListItemFromApiItem({ ...detail.match, id: matchId });
       setMatch(m);
       setDoc(matchDocumentFromApiDetail(detail));
-      const plist = detail.participants ?? [];
-      setCanSeeParticipantNames(plist.length > 0);
+      const canSeeSensitive = detail.viewer.canSeeSensitive;
+      const plist = canSeeSensitive ? (detail.participants ?? []) : [];
+      setCanSeeParticipantNames(canSeeSensitive && plist.length > 0);
       setParticipants(plist.map(participantFromApiDto));
       setOrganizerName(detail.organizer?.displayName ?? '');
       if (codeNorm) {
-        setGuestInviteContext({ matchId, code: codeNorm });
+        setGuestInviteContext({ target: 'match', matchId, code: codeNorm });
       }
+      const resolvedSeriesId = detail.seriesId ?? detail.match.seriesId ?? null;
+      const privacy = detail.match.privacy;
+      const allowed = canAccessPrivateMatch({
+        privacy,
+        inviteCode: codeNorm || undefined,
+        isOrganizer: detail.viewer.isOrganizer,
+        isParticipant: detail.viewer.isParticipant || detail.attendance != null,
+      });
+      if (!allowed) {
+        setAccessBlocked(true);
+        setMatch(null);
+        setDoc(null);
+        setSeriesId(resolvedSeriesId);
+        return;
+      }
+
+      setSeriesId(resolvedSeriesId);
+      setAttendance(detail.attendance ?? null);
       setViewerFlags({
         isOrganizer: detail.viewer.isOrganizer,
         isParticipant: detail.viewer.isParticipant,
         myParticipantId: detail.viewer.myParticipantId,
         myStatus: detail.viewer.myStatus,
+        canSeeSensitive: detail.viewer.canSeeSensitive,
       });
     } catch {
       if (codeNorm) {
         const row = await getInviteByCode(codeNorm);
-        if (row && row.matchId === matchId) {
+        if (row && row.matchId === matchId && row.target !== 'series') {
           setMatch(matchFromInviteIndexDto(row));
+          setAccessBlocked(false);
         } else {
           setError('Partida não encontrada');
         }
       } else {
+        setAccessBlocked(true);
         setError('Partida não encontrada');
       }
     } finally {
@@ -143,8 +175,16 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const viewerParticipantId =
     viewerFlags.myParticipantId ?? localGuest?.participantId ?? null;
   const organizerUid = doc?.organizers?.[0] ?? doc?.createdBy;
+  const organizerUids = doc?.organizers ?? [];
+  const canManage = canManageSeries({
+    userId: user?.uid,
+    isOrganizer,
+    organizerUids,
+    canSeeSensitive: viewerFlags.canSeeSensitive,
+  });
+  const isSeriesMember = attendance !== null;
   const isJoined =
-    viewerFlags.isParticipant || localGuest !== null || isOrganizer;
+    viewerFlags.isParticipant || localGuest !== null || isOrganizer || isSeriesMember;
   const isPendingApproval = !isOrganizer && myStatus === 'aguardando-aprovacao';
   const viewerJoined = isJoined && !isPendingApproval;
 
@@ -196,7 +236,11 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     setJoining(true);
     setError('');
     try {
-      await joinMatch(matchId, 'aguardando-aprovacao');
+      if (seriesId) {
+        await joinSeries(seriesId, 'aguardando-aprovacao');
+      } else {
+        await joinMatch(matchId, 'aguardando-aprovacao');
+      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao participar');
@@ -207,8 +251,41 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
 
   const handleLeave = async () => {
     if (!user) return;
-    await leaveMatch(matchId);
+    if (seriesId && (isSeriesMember || viewerFlags.isParticipant)) {
+      await leaveSeries(seriesId);
+    } else {
+      await leaveMatch(matchId);
+    }
     await load();
+  };
+
+  const handleSetAttendance = async (status: 'vou' | 'nao-vou') => {
+    if (!isSeriesMember && !seriesId) return;
+    setAttendanceBusy(true);
+    setError('');
+    try {
+      await setOccurrenceAttendance(matchId, status);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao atualizar presença');
+    } finally {
+      setAttendanceBusy(false);
+    }
+  };
+
+  const handleCancelOccurrence = async (cancelNote: string) => {
+    if (!canManage) return;
+    setManaging(true);
+    setError('');
+    try {
+      await updateMatch(matchId, { status: 'cancelled', cancelNote: cancelNote || null });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao cancelar semana');
+      throw e;
+    } finally {
+      setManaging(false);
+    }
   };
 
   const spots = doc?.spots ?? match?.spots ?? 0;
@@ -223,7 +300,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const confirmed = canSeeParticipantNames ? dentroList.length : statsConfirmed;
   const remaining = Math.max(0, spots - confirmed);
   const progressPercent = spots > 0 ? (confirmed / spots) * 100 : 0;
-  const canShare = !!user && !isGuestViewer;
+  const canShare = canManage && !!user && !isGuestViewer;
 
   const handleApproveParticipant = async (participantId: string) => {
     const status = remaining > 0 ? 'dentro' : 'lista-espera';
@@ -237,7 +314,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   };
 
   const handleTogglePaid = async (participantId: string) => {
-    if (!isOrganizer) {
+    if (!canManage) {
       const p = participants.find((x) => x.id === participantId);
       if (p?.uid !== user?.uid) return;
     }
@@ -255,7 +332,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   };
 
   const handleMoveParticipant = async (participantId: string, status: ParticipantStatus) => {
-    if (!isOrganizer) return;
+    if (!canManage) return;
     setManaging(true);
     setError('');
     try {
@@ -270,7 +347,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   };
 
   const handleRemoveParticipant = async (participantId: string) => {
-    if (!isOrganizer) return;
+    if (!canManage) return;
     setManaging(true);
     setError('');
     try {
@@ -285,7 +362,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   };
 
   const handleAddOrganizer = async (userId: string) => {
-    if (!isOrganizer) return;
+    if (!canManage) return;
     setManaging(true);
     setError('');
     try {
@@ -300,7 +377,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   };
 
   const handleRemoveOrganizer = async (userId: string) => {
-    if (!isOrganizer) return;
+    if (!canManage) return;
     setManaging(true);
     setError('');
     try {
@@ -313,7 +390,6 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     }
   };
 
-  const organizerUids = doc?.organizers ?? [];
   const copyText = async (text: string, feedback: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -375,6 +451,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     error,
     shareFeedback,
     isGuestViewer,
+    accessBlocked,
     canSeeParticipantNames,
     canShare,
     guestInvitePath: codeNorm ? matchPathWithCode(matchId, codeNorm) : null,
@@ -385,8 +462,17 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     isPendingApproval,
     viewerJoined,
     isOrganizer,
+    canManage,
     viewerParticipantId,
     organizerUid,
+    seriesId,
+    attendance,
+    myAttendanceStatus: attendance?.myStatus ?? null,
+    attendanceSummary: attendance?.summary ?? null,
+    isSeriesMember,
+    attendanceBusy,
+    handleSetAttendance,
+    handleCancelOccurrence,
     spots,
     confirmed,
     remaining,

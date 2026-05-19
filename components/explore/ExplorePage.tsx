@@ -49,7 +49,9 @@ export function ExplorePage() {
         listPublicProfiles(60),
         getPublicVenues(60),
       ]);
-      setMatches(m.items);
+      setMatches(
+        m.items.filter((item) => item.type !== 'weekly' && !item.seriesId),
+      );
       setUsers(u);
       setVenues(v);
     } catch (e) {

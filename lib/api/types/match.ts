@@ -1,9 +1,18 @@
+import type { CreateWeeklyMatchResponseDto } from '@/lib/api/types/match-series';
 import type { MatchPrivacy, MatchType, SportType } from '@/lib/models/match';
 import type { ParticipantStatus } from '@/lib/models/match-document';
+
+export type InviteTarget = 'match' | 'series';
+export type MatchStatus = 'scheduled' | 'open' | 'cancelled' | 'completed';
+export type OccurrenceAttendanceStatus = 'vou' | 'nao-vou' | 'pendente';
 
 export interface MatchListItemDto {
   id: string;
   type: MatchType;
+  seriesId?: string | null;
+  scheduledAt?: string | null;
+  monthKey?: string | null;
+  status?: MatchStatus;
   name: string;
   sport: SportType;
   location: string;
@@ -66,16 +75,38 @@ export interface OrganizerDto {
   phone: string | null;
 }
 
+export interface OccurrenceAttendanceSummaryDto {
+  vou: number;
+  naoVou: number;
+  pendente: number;
+}
+
+export interface OccurrenceAttendanceMemberDto {
+  uid: string;
+  name: string;
+  status: OccurrenceAttendanceStatus;
+}
+
+export interface OccurrenceAttendanceDto {
+  myStatus: OccurrenceAttendanceStatus | null;
+  summary: OccurrenceAttendanceSummaryDto;
+  members?: OccurrenceAttendanceMemberDto[];
+}
+
 export interface MatchDetailResponseDto {
   match: MatchDetailMatchDto;
   participants?: ParticipantDto[];
   viewer: MatchViewerDto;
   organizer?: OrganizerDto;
+  seriesId?: string | null;
+  attendance?: OccurrenceAttendanceDto;
 }
 
 export interface InviteIndexDto {
   code: string;
-  matchId: string;
+  target: InviteTarget;
+  matchId: string | null;
+  seriesId: string | null;
   type: MatchType;
   name: string;
   sport: SportType;
@@ -85,6 +116,11 @@ export interface InviteIndexDto {
   duration: string;
   spots: number;
   privacy: MatchPrivacy;
+  participantStatsPreview?: {
+    dentroCount: number;
+    listaEsperaCount: number;
+    aguardandoCount: number;
+  };
 }
 
 export interface PaginatedMatchesDto {
@@ -97,8 +133,12 @@ export interface CreateMatchResponseDto {
   inviteCode: string;
 }
 
+export type CreateMatchApiResponse = CreateMatchResponseDto | CreateWeeklyMatchResponseDto;
+
 /** Body parcial para PATCH /matches/:id */
 export interface UpdateMatchPayload {
+  status?: MatchStatus;
+  cancelNote?: string | null;
   type?: MatchType;
   sport?: SportType;
   name?: string;

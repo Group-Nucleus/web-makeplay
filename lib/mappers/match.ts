@@ -2,7 +2,7 @@ import type { MatchListItemDto, InviteIndexDto, MatchDetailResponseDto, Particip
 import type { Match, SportType } from '@/lib/models/match';
 import type { MatchDocument, ParticipantDocument } from '@/lib/models/match-document';
 
-const SPORT_IMAGES: Record<SportType, string> = {
+export const SPORT_IMAGES: Record<SportType, string> = {
   soccer: 'https://images.pexels.com/photos/274422/pexels-photo-274422.jpeg',
   volleyball: 'https://images.pexels.com/photos/1263426/pexels-photo-1263426.jpeg',
   basketball: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg',
@@ -40,12 +40,14 @@ export function matchListItemFromApiItem(item: MatchListItemDto): Match {
   return {
     id: item.id,
     type: item.type,
+    seriesId: item.seriesId ?? null,
+    matchStatus: item.status,
     title: item.name,
     image: SPORT_IMAGES[item.sport],
     nextMatch: formatMatchSchedule(item.day, item.startTime, item.duration),
     location: item.location,
     distance: '2,9km',
-    isConfirmed: false,
+    isConfirmed: false, // home/explore: confirmado só na página de detalhe
     spots: item.spots,
     privacy: item.privacy,
     participantStatsPreview: item.participantStatsPreview,
@@ -54,13 +56,13 @@ export function matchListItemFromApiItem(item: MatchListItemDto): Match {
 
 export function matchFromInviteIndexDto(row: InviteIndexDto): Match {
   return {
-    id: row.matchId,
+    id: row.matchId ?? '',
     type: row.type,
     title: row.name,
     image: SPORT_IMAGES[row.sport],
     nextMatch: formatMatchSchedule(row.day, row.startTime, row.duration),
     location: row.location,
-    isConfirmed: false,
+    isConfirmed: false, // home/explore: confirmado só na página de detalhe
     spots: row.spots,
     privacy: row.privacy,
     hydrateFromInviteRoute: true,
@@ -71,6 +73,10 @@ export function matchDocumentFromApiDetail(detail: MatchDetailResponseDto): Matc
   const m = detail.match;
   const r = m.restricted;
   return {
+    seriesId: detail.seriesId ?? m.seriesId ?? null,
+    scheduledAt: m.scheduledAt ?? null,
+    monthKey: m.monthKey ?? null,
+    matchStatus: m.status,
     type: m.type,
     sport: m.sport,
     name: m.name,

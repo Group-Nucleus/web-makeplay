@@ -95,7 +95,6 @@ export function useEditMatch(
     setSubmitError(null);
 
     const body: UpdateMatchPayload = {
-      type: doc.type,
       sport: form.sport as SportType,
       name: form.name,
       location: form.location,
@@ -114,6 +113,10 @@ export function useEditMatch(
       hidePhoneNumber: form.hidePhoneNumber,
       description: form.description.trim() || null,
     };
+
+    if (!doc.seriesId) {
+      body.type = doc.type;
+    }
 
     if (selectedVenue) {
       body.venueId = selectedVenue.id;

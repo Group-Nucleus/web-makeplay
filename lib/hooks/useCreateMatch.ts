@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { step1Schema, step2Schema, step3Schema } from '@/lib/schemas/createMatch';
 import type { CreateMatchForm, MatchPrivacy, MatchType, SportType, Venue } from '@/lib/models/match';
-import { createMatch } from '@/lib/repositories/match';
+import { createMatch, type CreateMatchResult } from '@/lib/repositories/match';
 
 const INITIAL: Omit<CreateMatchForm, 'type'> = {
   sport: '',
@@ -25,7 +25,10 @@ const INITIAL: Omit<CreateMatchForm, 'type'> = {
   hidePhoneNumber: false,
 };
 
-export function useCreateMatch(matchType: MatchType, onComplete: () => void) {
+export function useCreateMatch(
+  matchType: MatchType,
+  onComplete: (result: CreateMatchResult) => void,
+) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [form, setForm] = useState<CreateMatchForm>({ ...INITIAL, type: matchType });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,11 +67,11 @@ export function useCreateMatch(matchType: MatchType, onComplete: () => void) {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      await createMatch(form);
+      const result = await createMatch(form);
       setStep(1);
       setForm({ ...INITIAL, type: matchType });
       setSelectedVenue(null);
-      onComplete();
+      onComplete(result);
     } catch {
       setSubmitError('Erro ao criar partida. Tente novamente.');
     } finally {

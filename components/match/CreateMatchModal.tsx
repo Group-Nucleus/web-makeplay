@@ -7,6 +7,7 @@ import { CreateVenueModal } from '@/components/venue/CreateVenueModal';
 import { VenuePickerSheet } from '@/components/venue/VenuePickerSheet';
 import { Field, inputClass } from '@/components/ui/Field';
 import { useCreateMatch } from '@/lib/hooks/useCreateMatch';
+import type { CreateMatchResult } from '@/lib/repositories/match';
 import type { MatchType, MatchPrivacy, SportType, Venue } from '@/lib/models/match';
 import { getPublicVenues } from '@/lib/repositories/venue';
 
@@ -34,12 +35,12 @@ interface Props {
   open: boolean;
   type: MatchType;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (result: CreateMatchResult) => void;
 }
 
 export function CreateMatchModal({ open, type, onClose, onCreated }: Props) {
-  const vm = useCreateMatch(type, () => {
-    onCreated();
+  const vm = useCreateMatch(type, (result) => {
+    onCreated(result);
     onClose();
   });
   const [venues, setVenues] = useState<Venue[]>([]);

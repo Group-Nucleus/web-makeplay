@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { matchPathWithCode } from '@/lib/guestRoutes';
+import { matchPathWithCode, seriesPathWithCode } from '@/lib/guestRoutes';
 import { getInviteByCode, normalizeInviteIndexId } from '@/lib/repositories/match';
 import { setGuestInviteContext } from '@/lib/storage/guestInvite';
 
@@ -22,11 +22,25 @@ export default function InviteRedirectPage() {
 
     void (async () => {
       const row = await getInviteByCode(code);
-      if (row?.matchId) {
-        setGuestInviteContext({ matchId: row.matchId, code });
+      if (!row) {
+        setError('Convite não encontrado ou expirado.');
+        return;
+      }
+
+      const target = row.target ?? (row.seriesId && !row.matchId ? 'series' : 'match');
+
+      if (target === 'series' && row.seriesId) {
+        setGuestInviteContext({ target: 'series', seriesId: row.seriesId, code });
+        router.replace(seriesPathWithCode(row.seriesId, code));
+        return;
+      }
+
+      if (row.matchId) {
+        setGuestInviteContext({ target: 'match', matchId: row.matchId, code });
         router.replace(matchPathWithCode(row.matchId, code));
         return;
       }
+
       setError('Convite não encontrado ou expirado.');
     })();
   }, [params.code, router]);
@@ -52,4 +66,3 @@ export default function InviteRedirectPage() {
     </div>
   );
 }
-

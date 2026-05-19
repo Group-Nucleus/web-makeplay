@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Calendar, Clock, Copy, Link2, MapPin, Pencil, Share2, User } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { EditMatchModal } from '@/components/match/EditMatchModal';
 import { GuestJoinModal } from '@/components/match/GuestJoinModal';
@@ -13,6 +13,7 @@ import {
   PlayerSection,
   sectionAccent,
 } from '@/components/match/MatchDetailSections';
+import { OccurrenceAttendancePanel } from '@/components/match/OccurrenceAttendancePanel';
 import { ParticipantManageSheet } from '@/components/match/ParticipantManageSheet';
 import { useMatchDetail } from '@/lib/hooks/useMatchDetail';
 import { useAuth } from '@/lib/auth/context';
@@ -43,6 +44,12 @@ export function MatchDetailPage({
   const [tab, setTab] = useState<Tab>('INFO');
   const [editOpen, setEditOpen] = useState(false);
 
+  useEffect(() => {
+    if (!vm.canManage && tab === 'JOGADORES') {
+      setTab('INFO');
+    }
+  }, [vm.canManage, tab]);
+
   if (vm.loading) {
     return (
       <div className="flex justify-center py-24">
@@ -51,10 +58,21 @@ export function MatchDetailPage({
     );
   }
 
-  if (vm.error || !vm.match) {
+  if (vm.accessBlocked || vm.error || !vm.match) {
     return (
       <div className="px-6 py-24 text-center">
-        <p className="mb-4 text-white">{vm.error || 'Partida não encontrada'}</p>
+        <p className="mb-4 text-white">
+          {vm.accessBlocked
+            ? 'Esta partida é só para convidados. Usa o link da semana ou o convite da pelada.'
+            : vm.error || 'Partida não encontrada'}
+        </p>
+        {vm.seriesId && (
+          <Link
+            href={`/series/${vm.seriesId}`}
+            className="mb-4 block text-sm font-bold text-[#BFFF00]">
+            Ver pelada do grupo
+          </Link>
+        )}
         {vm.isGuestViewer ? (
           <Link href="/login" className="text-[#BFFF00]">
             Entrar com conta
@@ -75,6 +93,7 @@ export function MatchDetailPage({
   const { match, doc } = vm;
   const subtitle = [doc ? SPORT_LABEL[doc.sport] : '', doc?.gameType].filter(Boolean).join(' • ');
   const canInvite = vm.canShare && !!doc?.inviteCode;
+  const isCancelled = doc?.matchStatus === 'cancelled';
 
   return (
     <div className="px-4 py-4 sm:px-6 sm:py-6">
@@ -112,20 +131,44 @@ export function MatchDetailPage({
               style={{ backgroundImage: `url(${match.image ?? FIELD_IMAGE})` }}>
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
               <div className="absolute bottom-0 p-4">
+                {isCancelled && (
+                  <span className="mb-1 inline-block rounded bg-[#FF4136]/20 px-2 py-0.5 text-[10px] font-bold uppercase text-[#FF4136]">
+                    Cancelada
+                  </span>
+                )}
                 <h1 className="text-2xl font-bold text-white">{match.title}</h1>
                 {subtitle && <p className="text-sm text-[#ccc]">{subtitle}</p>}
+                {vm.seriesId && (
+                  <Link
+                    href={`/series/${vm.seriesId}`}
+                    className="mt-2 inline-block text-xs font-bold text-[#BFFF00]">
+                    Ver pelada fixa →
+                  </Link>
+                )}
               </div>
             </div>
             <JoinActions vm={vm} hasUser={!!user} canInvite={canInvite} />
-            {vm.isOrganizer && (
-              <div className="px-4 pb-2">
+            {vm.canManage && (
+              <div className="space-y-2 px-4 pb-2">
                 <button
                   type="button"
                   onClick={() => setEditOpen(true)}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#333] py-2.5 text-sm font-bold text-white hover:border-[#555]">
                   <Pencil className="h-4 w-4 text-[#BFFF00]" />
-                  EDITAR PARTIDA
+                  EDITAR {vm.seriesId ? 'ESTA SEMANA' : 'PARTIDA'}
                 </button>
+                {vm.seriesId && doc?.matchStatus !== 'cancelled' && (
+                  <button
+                    type="button"
+                    disabled={vm.managing}
+                    onClick={() => {
+                      const note = window.prompt('Motivo do cancelamento (opcional):') ?? '';
+                      void vm.handleCancelOccurrence(note);
+                    }}
+                    className="flex w-full items-center justify-center rounded-lg border border-[#FF4136]/50 py-2.5 text-sm font-bold text-[#FF4136] disabled:opacity-50">
+                    CANCELAR ESTA SEMANA
+                  </button>
+                )}
               </div>
             )}
             <MatchMeta
@@ -139,9 +182,19 @@ export function MatchDetailPage({
         </aside>
 
         <main className="min-w-0 flex-1">
-          <TabBar tab={tab} setTab={setTab} />
+          <TabBar tab={tab} setTab={setTab} showPlayersTab={vm.canManage} />
           {tab === 'INFO' && (
-            <InfoTab vm={vm} organizerUid={vm.organizerUid} userId={user?.uid} />
+            <>
+              {vm.isSeriesMember && vm.attendanceSummary && (
+                <OccurrenceAttendancePanel
+                  myStatus={vm.myAttendanceStatus}
+                  summary={vm.attendanceSummary}
+                  busy={vm.attendanceBusy}
+                  onSetStatus={(s) => void vm.handleSetAttendance(s)}
+                />
+              )}
+              <InfoTab vm={vm} organizerUid={vm.organizerUid} userId={user?.uid} />
+            </>
           )}
           {tab === 'JOGADORES' && (
             <PlayersTab vm={vm} userId={user?.uid} />
@@ -165,9 +218,9 @@ function JoinActions({
     <div className="space-y-2 p-4">
       {vm.error && <p className="text-xs text-red-400">{vm.error}</p>}
 
-      {vm.isOrganizer ? (
+      {vm.canManage ? (
         <div className="rounded-lg border border-[#BFFF00]/40 bg-[#BFFF00]/10 py-3 text-center text-sm font-bold text-[#BFFF00]">
-          Você é o organizador
+          {vm.isOrganizer ? 'Você é o organizador' : 'Você é admin desta partida'}
         </div>
       ) : !vm.isJoined ? (
         <button
@@ -179,7 +232,9 @@ function JoinActions({
             ? 'A enviar...'
             : vm.isGuestViewer
               ? 'ENTRAR SÓ COM O MEU NOME'
-              : 'QUERO PARTICIPAR'}
+              : vm.seriesId
+                ? 'ENTRAR NA PELADA'
+                : 'QUERO PARTICIPAR'}
         </button>
       ) : vm.isPendingApproval ? (
         <div className="flex items-center justify-center gap-2 rounded-lg border border-[#333] py-3 text-sm font-bold text-[#888]">
@@ -191,7 +246,7 @@ function JoinActions({
           type="button"
           onClick={() => void vm.handleLeave()}
           className="w-full rounded-lg border border-[#BFFF00] py-3 text-sm font-bold text-[#BFFF00]">
-          SAIR DA PARTIDA
+          {vm.seriesId ? 'SAIR DA PELADA' : 'SAIR DA PARTIDA'}
         </button>
       ) : null}
 
@@ -317,10 +372,19 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+function TabBar({
+  tab,
+  setTab,
+  showPlayersTab,
+}: {
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  showPlayersTab: boolean;
+}) {
+  const tabs: Tab[] = showPlayersTab ? ['INFO', 'JOGADORES'] : ['INFO'];
   return (
     <div className="mb-6 flex gap-6 border-b border-[#2a2a2a]">
-      {(['INFO', 'JOGADORES'] as Tab[]).map((t) => (
+      {tabs.map((t) => (
         <button
           key={t}
           type="button"
@@ -352,6 +416,12 @@ function InfoTab({
       remaining={vm.remaining}
       progressPercent={vm.progressPercent}
     />
+
+    {!vm.canSeeParticipantNames && !vm.isGuestViewer && (
+      <p className="mb-4 text-sm text-[#888]">
+        A lista completa de jogadores é visível apenas para o organizador e admins.
+      </p>
+    )}
 
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-base font-bold text-white">Jogadores confirmados</h2>
@@ -398,11 +468,11 @@ function PlayersTab({
   const managedCanDemote = managedIsAdmin && vm.organizerUids.length > 1;
 
   const playerSectionProps = {
-    isOrganizer: vm.isOrganizer,
+    isOrganizer: vm.canManage,
     currentUserId: userId,
     viewerParticipantId: vm.viewerParticipantId,
     onTogglePaid: (id: string) => void vm.handleTogglePaid(id),
-    onManagePlayer: vm.isOrganizer ? (id: string) => setManageId(id) : undefined,
+    onManagePlayer: vm.canManage ? (id: string) => setManageId(id) : undefined,
     organizerUids: vm.organizerUids,
   };
 
@@ -444,7 +514,7 @@ function PlayersTab({
         currentStatus={managedPlayer?.status ?? null}
         onClose={() => setManageId(null)}
         busy={vm.managing}
-        showAdminControls={vm.isOrganizer}
+        showAdminControls={vm.canManage}
         isAdmin={managedIsAdmin}
         canPromoteAdmin={managedCanPromote}
         canDemoteAdmin={managedCanDemote}
@@ -492,7 +562,7 @@ function PlayersTab({
         </div>
       )}
 
-      {vm.isOrganizer && (
+      {vm.canManage && (
         <PendingSection
           players={vm.aguardandoList}
           onApprove={(id) => void vm.handleApproveParticipant(id)}

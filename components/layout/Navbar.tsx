@@ -6,7 +6,7 @@ import { Compass, Home, User } from 'lucide-react';
 
 import { useAuth } from '@/lib/auth/context';
 import { getGuestInviteContext } from '@/lib/storage/guestInvite';
-import { matchPathWithCode } from '@/lib/guestRoutes';
+import { matchPathWithCode, seriesPathWithCode } from '@/lib/guestRoutes';
 
 const AUTH_LINKS = [
   { href: '/', label: 'Início', Icon: Home },
@@ -39,7 +39,11 @@ export function Navbar({ guestMode = false }: { guestMode?: boolean }) {
 
   if (showGuestNav) {
     const invite = getGuestInviteContext();
-    const homeHref = invite ? matchPathWithCode(invite.matchId, invite.code) : pathname;
+    const homeHref = invite
+      ? invite.target === 'series'
+        ? seriesPathWithCode(invite.seriesId, invite.code)
+        : matchPathWithCode(invite.matchId, invite.code)
+      : pathname;
 
     return (
       <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-black/95 backdrop-blur-sm supports-[backdrop-filter]:bg-black/80">
