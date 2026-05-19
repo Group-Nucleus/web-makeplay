@@ -1,4 +1,5 @@
 import { matchPathWithCode, seriesPathWithCode } from '@/lib/guestRoutes';
+import { normalizeInviteIndexId } from '@/lib/repositories/match';
 
 const KEY = 'boraplay_guest_invite';
 
@@ -35,6 +36,18 @@ export function getGuestInviteContext(): GuestInviteContext | null {
 export function clearGuestInviteContext(): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(KEY);
+}
+
+/** Código do convite: query `?code=`, sessão após /invite/:code ou convite da pelada na série. */
+export function resolveMatchInviteCode(matchId: string, inviteCode?: string): string {
+  const fromUrl = inviteCode ? normalizeInviteIndexId(inviteCode) : '';
+  if (fromUrl) return fromUrl;
+  const ctx = getGuestInviteContext();
+  if (!ctx?.code) return '';
+  const code = normalizeInviteIndexId(ctx.code);
+  if (ctx.target === 'match' && ctx.matchId === matchId) return code;
+  if (ctx.target === 'series') return code;
+  return '';
 }
 
 /** Destino após login: convite guardado no storage. */

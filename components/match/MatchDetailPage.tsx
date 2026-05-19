@@ -231,7 +231,13 @@ function JoinActions({
         <button
           type="button"
           disabled={vm.joining || (vm.isGuestViewer && !vm.canGuestJoin)}
-          onClick={() => void vm.handleRequestToJoin()}
+          onClick={() => {
+            if (vm.isGuestViewer) {
+              vm.openGuestJoin();
+              return;
+            }
+            void vm.handleRequestToJoin();
+          }}
           className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
           {vm.joining
             ? 'A enviar...'
@@ -266,12 +272,17 @@ function JoinActions({
       )}
 
       {vm.isGuestViewer && (
-        <button
-          type="button"
-          onClick={() => (window.location.href = '/login')}
-          className="w-full text-center text-sm text-[#BFFF00]">
-          Entrar para gerir presença
-        </button>
+        <p className="text-center text-sm text-[#888]">
+          Já tens conta?{' '}
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/login';
+            }}
+            className="font-semibold text-[#BFFF00]">
+            Entrar
+          </button>
+        </p>
       )}
     </div>
   );
@@ -415,6 +426,26 @@ function InfoTab({
 }) {
   return (
   <div>
+    {vm.isGuestViewer && vm.canGuestJoin && (
+      <div className="mb-6 rounded-xl border border-[#BFFF00]/35 bg-[#BFFF00]/5 p-4">
+        <p className="mb-3 text-sm text-white">
+          Entra na lista desta partida só com o teu nome — sem criar conta.
+        </p>
+        <button
+          type="button"
+          onClick={() => vm.openGuestJoin()}
+          className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black">
+          Entrar só com o meu nome
+        </button>
+      </div>
+    )}
+
+    {vm.isGuestViewer && vm.isJoined && vm.isPendingApproval && (
+      <p className="mb-4 rounded-xl border border-[#333] bg-[#1A1A1A] px-4 py-3 text-sm text-[#ccc]">
+        Pedido enviado. O organizador confirma a tua vaga em breve.
+      </p>
+    )}
+
     <AttendanceProgress
       confirmed={vm.confirmed}
       spots={vm.spots}

@@ -14,7 +14,10 @@ import type { MatchDocument, ParticipantStatus } from '@/lib/models/match-docume
 import { POLL_MATCH_DETAIL_MS } from '@/lib/constants';
 import { buildInviteUrl } from '@/lib/config';
 import { matchPathWithCode } from '@/lib/guestRoutes';
-import { setGuestInviteContext } from '@/lib/storage/guestInvite';
+import {
+  resolveMatchInviteCode,
+  setGuestInviteContext,
+} from '@/lib/storage/guestInvite';
 import type { OccurrenceAttendanceDto } from '@/lib/api/types/match';
 import {
   addMatchOrganizer,
@@ -46,8 +49,15 @@ import {
 
 export function useMatchDetail(matchId: string, inviteCode?: string) {
   const { user, loading: authLoading, apiSessionReady } = useAuth();
-  const codeNorm = inviteCode ? normalizeInviteIndexId(inviteCode) : '';
+  const [inviteCodeResolved, setInviteCodeResolved] = useState(() =>
+    resolveMatchInviteCode(matchId, inviteCode),
+  );
+  const codeNorm = inviteCodeResolved;
   const isGuestViewer = !authLoading && !user;
+
+  useEffect(() => {
+    setInviteCodeResolved(resolveMatchInviteCode(matchId, inviteCode));
+  }, [matchId, inviteCode]);
 
   const [match, setMatch] = useState<Match | null>(null);
   const [doc, setDoc] = useState<MatchDocument | null>(null);
@@ -209,13 +219,21 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const canGuestJoin =
     isGuestViewer &&
     !isJoined &&
-    (privacy === 'public' || (!!codeNorm && privacy === 'invite-only'));
+    !accessBlocked &&
+    doc?.matchStatus !== 'cancelled' &&
+    (privacy === 'public' ||
+      privacy === 'invite-only' ||
+      !!codeNorm);
 
   const handleGuestJoin = async (name: string) => {
     setJoining(true);
     setActionError('');
     try {
-      const participant = await joinMatchAsGuest(matchId, name, codeNorm || undefined);
+      const participant = await joinMatchAsGuest(
+        matchId,
+        name,
+        codeNorm || doc?.inviteCode || undefined,
+      );
       const record: GuestParticipantRecord = {
         participantId: participant.id,
         name: participant.name,
@@ -496,6 +514,9 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     canGuestJoin,
     guestJoinOpen,
     setGuestJoinOpen,
+    openGuestJoin: () => {
+      if (canGuestJoin) setGuestJoinOpen(true);
+    },
     isJoined,
     isPendingApproval,
     viewerJoined,
