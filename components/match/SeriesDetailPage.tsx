@@ -21,7 +21,11 @@ import { useAuth } from '@/lib/auth/context';
 import type { OccurrenceAttendanceDto } from '@/lib/api/types/match';
 import { matchPathWithCode } from '@/lib/guestRoutes';
 import { getMatchDetail } from '@/lib/repositories/match';
-import { setOccurrenceAttendance } from '@/lib/repositories/match-series';
+import { joinSeries, setOccurrenceAttendance } from '@/lib/repositories/match-series';
+import {
+  ensureSeriesMembershipInRoster,
+  isSeriesMembershipRequiredError,
+} from '@/lib/utils/seriesMembership';
 import { formatMatchSchedule } from '@/lib/mappers/match';
 import type { SeriesOccurrenceDto } from '@/lib/api/types/match-series';
 
@@ -43,6 +47,7 @@ export function SeriesDetailPage({
   const [panel, setPanel] = useState<Panel>('main');
   const [nextAttendance, setNextAttendance] = useState<OccurrenceAttendanceDto | null>(null);
   const [nextAttendanceBusy, setNextAttendanceBusy] = useState(false);
+  const [nextAttendanceError, setNextAttendanceError] = useState('');
 
   const nextOccurrence = useMemo(
     () => pickNextOccurrence(vm.occurrences),
@@ -88,12 +93,30 @@ export function SeriesDetailPage({
   const handleSetNextAttendance = async (status: 'vou' | 'nao-vou') => {
     if (!nextOccurrence?.id) return;
     setNextAttendanceBusy(true);
+    setNextAttendanceError('');
     try {
-      await setOccurrenceAttendance(nextOccurrence.id, status);
+      await ensureSeriesMembershipInRoster(seriesId, {
+        isParticipant: vm.isParticipant,
+        autoJoinAsMember: vm.canManage,
+      });
+      try {
+        await setOccurrenceAttendance(nextOccurrence.id, status);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (isSeriesMembershipRequiredError(msg) && vm.canManage) {
+          await joinSeries(seriesId, 'dentro');
+          await setOccurrenceAttendance(nextOccurrence.id, status);
+        } else {
+          throw e;
+        }
+      }
       const detail = await getMatchDetail(nextOccurrence.id, inviteCode);
       setNextAttendance(detail.attendance ?? null);
-    } catch {
-      //
+      void vm.reload();
+    } catch (e) {
+      setNextAttendanceError(
+        e instanceof Error ? e.message : 'Erro ao atualizar presença',
+      );
     } finally {
       setNextAttendanceBusy(false);
     }
@@ -344,6 +367,7 @@ export function SeriesDetailPage({
                           nextAttendance?.summary ?? { vou: 0, naoVou: 0, pendente: 0 }
                         }
                         attendanceBusy={nextAttendanceBusy}
+                        attendanceError={nextAttendanceError}
                         onSetAttendance={(s) => void handleSetNextAttendance(s)}
                         onJoin={() => void vm.handleRequestToJoin()}
                       />
@@ -463,6 +487,7 @@ function NextGameStatus({
   myAttendanceStatus,
   attendanceSummary,
   attendanceBusy,
+  attendanceError,
   onSetAttendance,
   onJoin,
 }: {
@@ -472,18 +497,24 @@ function NextGameStatus({
   myAttendanceStatus: OccurrenceAttendanceDto['myStatus'];
   attendanceSummary: OccurrenceAttendanceDto['summary'];
   attendanceBusy: boolean;
+  attendanceError?: string;
   onSetAttendance: (status: 'vou' | 'nao-vou') => void;
   onJoin: () => void;
 }) {
   if (canMarkAttendance) {
     return (
-      <OccurrenceAttendancePanel
-        myStatus={myAttendanceStatus}
-        summary={attendanceSummary}
-        busy={attendanceBusy}
-        onSetStatus={onSetAttendance}
-        embedded
-      />
+      <>
+        <OccurrenceAttendancePanel
+          myStatus={myAttendanceStatus}
+          summary={attendanceSummary}
+          busy={attendanceBusy}
+          onSetStatus={onSetAttendance}
+          embedded
+        />
+        {attendanceError && (
+          <p className="mt-2 text-sm text-red-400">{attendanceError}</p>
+        )}
+      </>
     );
   }
 

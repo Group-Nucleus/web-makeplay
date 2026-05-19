@@ -238,6 +238,7 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
     isJoined,
     isPendingApproval,
     isOrganizer,
+    isParticipant: viewerFlags.isParticipant,
     canManage,
     organizerUid,
     organizerUids,

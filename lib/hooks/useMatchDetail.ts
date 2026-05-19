@@ -34,6 +34,10 @@ import {
 import { joinSeries, leaveSeries, setOccurrenceAttendance } from '@/lib/repositories/match-series';
 import { canAccessPrivateMatch, canManageSeries } from '@/lib/utils/seriesAccess';
 import {
+  ensureSeriesMembershipInRoster,
+  isSeriesMembershipRequiredError,
+} from '@/lib/utils/seriesMembership';
+import {
   getGuestParticipant,
   setGuestParticipant,
   setPendingGuestClaimToken,
@@ -60,7 +64,8 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const [guestJoinOpen, setGuestJoinOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [shareFeedback, setShareFeedback] = useState('');
   const [canSeeParticipantNames, setCanSeeParticipantNames] = useState(false);
   const [managing, setManaging] = useState(false);
@@ -75,7 +80,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
-    setError('');
+    setLoadError('');
     setAccessBlocked(false);
     const guestToken = localGuest?.guestToken;
     try {
@@ -139,11 +144,11 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
           setMatch(matchFromInviteIndexDto(row));
           setAccessBlocked(false);
         } else {
-          setError('Partida não encontrada');
+          setLoadError('Partida não encontrada');
         }
       } else {
         setAccessBlocked(true);
-        setError('Partida não encontrada');
+        setLoadError('Partida não encontrada');
       }
     } finally {
       if (!options?.silent) setLoading(false);
@@ -208,7 +213,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
 
   const handleGuestJoin = async (name: string) => {
     setJoining(true);
-    setError('');
+    setActionError('');
     try {
       const participant = await joinMatchAsGuest(matchId, name, codeNorm || undefined);
       const record: GuestParticipantRecord = {
@@ -224,7 +229,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       setLocalGuest(record);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao participar');
+      setActionError(e instanceof Error ? e.message : 'Erro ao participar');
       throw e;
     } finally {
       setJoining(false);
@@ -239,7 +244,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     }
     if (!apiSessionReady) return;
     setJoining(true);
-    setError('');
+    setActionError('');
     try {
       if (seriesId) {
         await joinSeries(seriesId, 'aguardando-aprovacao');
@@ -248,7 +253,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       }
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao participar');
+      setActionError(e instanceof Error ? e.message : 'Erro ao participar');
     } finally {
       setJoining(false);
     }
@@ -264,15 +269,34 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     await load();
   };
 
-  const handleSetAttendance = async (status: 'vou' | 'nao-vou') => {
-    if (!canMarkOccurrenceAttendance) return;
-    setAttendanceBusy(true);
-    setError('');
+  const markOccurrenceAttendance = async (status: 'vou' | 'nao-vou') => {
+    if (!seriesId) return;
+    await ensureSeriesMembershipInRoster(seriesId, {
+      isParticipant: viewerFlags.isParticipant,
+      autoJoinAsMember: isOrganizer || canManage,
+    });
     try {
       await setOccurrenceAttendance(matchId, status);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      if (isSeriesMembershipRequiredError(msg) && (isOrganizer || canManage)) {
+        await joinSeries(seriesId, 'dentro');
+        await setOccurrenceAttendance(matchId, status);
+        return;
+      }
+      throw e;
+    }
+  };
+
+  const handleSetAttendance = async (status: 'vou' | 'nao-vou') => {
+    if (!canMarkOccurrenceAttendance || !seriesId) return;
+    setAttendanceBusy(true);
+    setActionError('');
+    try {
+      await markOccurrenceAttendance(status);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao atualizar presença');
+      setActionError(e instanceof Error ? e.message : 'Erro ao atualizar presença');
     } finally {
       setAttendanceBusy(false);
     }
@@ -281,12 +305,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const handleCancelOccurrence = async (cancelNote: string) => {
     if (!canManage) return;
     setManaging(true);
-    setError('');
+    setActionError('');
     try {
       await updateMatch(matchId, { status: 'cancelled', cancelNote: cancelNote || null });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao cancelar semana');
+      setActionError(e instanceof Error ? e.message : 'Erro ao cancelar semana');
       throw e;
     } finally {
       setManaging(false);
@@ -338,7 +362,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       await toggleParticipantPaid(matchId, participantId, !p.isPaid);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao atualizar pagamento');
+      setActionError(e instanceof Error ? e.message : 'Erro ao atualizar pagamento');
     } finally {
       setManaging(false);
     }
@@ -347,12 +371,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const handleMoveParticipant = async (participantId: string, status: ParticipantStatus) => {
     if (!canManage) return;
     setManaging(true);
-    setError('');
+    setActionError('');
     try {
       await updateParticipantStatus(matchId, participantId, status);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao mover jogador');
+      setActionError(e instanceof Error ? e.message : 'Erro ao mover jogador');
       throw e;
     } finally {
       setManaging(false);
@@ -362,12 +386,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const handleRemoveParticipant = async (participantId: string) => {
     if (!canManage) return;
     setManaging(true);
-    setError('');
+    setActionError('');
     try {
       await removeParticipant(matchId, participantId);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao remover jogador');
+      setActionError(e instanceof Error ? e.message : 'Erro ao remover jogador');
       throw e;
     } finally {
       setManaging(false);
@@ -377,12 +401,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const handleAddOrganizer = async (userId: string) => {
     if (!canManage) return;
     setManaging(true);
-    setError('');
+    setActionError('');
     try {
       await addMatchOrganizer(matchId, userId);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao adicionar admin');
+      setActionError(e instanceof Error ? e.message : 'Erro ao adicionar admin');
       throw e;
     } finally {
       setManaging(false);
@@ -392,12 +416,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const handleRemoveOrganizer = async (userId: string) => {
     if (!canManage) return;
     setManaging(true);
-    setError('');
+    setActionError('');
     try {
       await removeMatchOrganizer(matchId, userId);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao remover admin');
+      setActionError(e instanceof Error ? e.message : 'Erro ao remover admin');
     } finally {
       setManaging(false);
     }
@@ -461,7 +485,8 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     organizerName,
     loading,
     joining,
-    error,
+    loadError,
+    actionError,
     shareFeedback,
     isGuestViewer,
     accessBlocked,

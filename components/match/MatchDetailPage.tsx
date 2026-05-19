@@ -58,13 +58,13 @@ export function MatchDetailPage({
     );
   }
 
-  if (vm.accessBlocked || vm.error || !vm.match) {
+  if (vm.accessBlocked || vm.loadError || !vm.match) {
     return (
       <div className="px-6 py-24 text-center">
         <p className="mb-4 text-white">
           {vm.accessBlocked
             ? 'Esta partida é só para convidados. Usa o link da semana ou o convite da pelada.'
-            : vm.error || 'Partida não encontrada'}
+            : vm.loadError || 'Partida não encontrada'}
         </p>
         {vm.seriesId && (
           <Link
@@ -186,12 +186,17 @@ export function MatchDetailPage({
           {tab === 'INFO' && (
             <>
               {vm.canMarkOccurrenceAttendance && (
-                <OccurrenceAttendancePanel
-                  myStatus={vm.myAttendanceStatus}
-                  summary={vm.attendanceSummary}
-                  busy={vm.attendanceBusy}
-                  onSetStatus={(s) => void vm.handleSetAttendance(s)}
-                />
+                <>
+                  <OccurrenceAttendancePanel
+                    myStatus={vm.myAttendanceStatus}
+                    summary={vm.attendanceSummary}
+                    busy={vm.attendanceBusy}
+                    onSetStatus={(s) => void vm.handleSetAttendance(s)}
+                  />
+                  {vm.actionError && (
+                    <p className="-mt-4 mb-4 text-sm text-red-400">{vm.actionError}</p>
+                  )}
+                </>
               )}
               <InfoTab vm={vm} organizerUid={vm.organizerUid} userId={user?.uid} />
             </>
@@ -216,7 +221,7 @@ function JoinActions({
 }) {
   return (
     <div className="space-y-2 p-4">
-      {vm.error && <p className="text-xs text-red-400">{vm.error}</p>}
+      {vm.actionError && <p className="text-xs text-red-400">{vm.actionError}</p>}
 
       {vm.canManage ? (
         <div className="rounded-lg border border-[#BFFF00]/40 bg-[#BFFF00]/10 py-3 text-center text-sm font-bold text-[#BFFF00]">
@@ -540,7 +545,7 @@ function PlayersTab({
         }}
       />
 
-      {vm.error && <p className="mb-4 text-sm text-red-400">{vm.error}</p>}
+      {vm.actionError && <p className="mb-4 text-sm text-red-400">{vm.actionError}</p>}
 
       {vm.canShare && (
         <div className="mb-6 flex flex-wrap gap-3">
