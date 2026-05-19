@@ -13,7 +13,7 @@ export function canManageSeries(options: {
   return false;
 }
 
-/** Peladas weekly / invite-only: só público, convite na URL ou membro/organizador. */
+/** Partida privada: público, convite válido na URL/sessão, ou membro/organizador. */
 export function canAccessPrivateMatch(options: {
   privacy: MatchPrivacy | undefined;
   inviteCode: string | undefined;
@@ -23,8 +23,25 @@ export function canAccessPrivateMatch(options: {
   const { privacy, inviteCode, isOrganizer, isParticipant } = options;
   if (isOrganizer || isParticipant) return true;
   if (privacy === 'public') return true;
-  if (privacy === 'invite-only' && inviteCode) return true;
+  if (inviteCode) return true;
   return false;
+}
+
+/** Convidado sem conta pode pedir vaga com o link do convite. */
+export function canGuestJoinWithInvite(options: {
+  isGuestViewer: boolean;
+  hasLocalGuest: boolean;
+  isParticipant: boolean;
+  accessBlocked: boolean;
+  matchCancelled: boolean;
+  inviteCode: string;
+  privacy: MatchPrivacy | undefined;
+}): boolean {
+  if (!options.isGuestViewer) return false;
+  if (options.hasLocalGuest || options.isParticipant) return false;
+  if (options.accessBlocked || options.matchCancelled) return false;
+  if (options.privacy === 'public') return true;
+  return !!options.inviteCode;
 }
 
 /** Uma entrada por série na home (usa seriesId como id do card). */

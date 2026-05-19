@@ -227,25 +227,25 @@ function JoinActions({
         <div className="rounded-lg border border-[#BFFF00]/40 bg-[#BFFF00]/10 py-3 text-center text-sm font-bold text-[#BFFF00]">
           {vm.isOrganizer ? 'Você é o organizador' : 'Você é admin desta partida'}
         </div>
+      ) : vm.isGuestViewer && vm.canGuestJoin ? (
+        <button
+          type="button"
+          disabled={vm.joining}
+          onClick={() => vm.openGuestJoin()}
+          className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
+          {vm.joining ? 'A enviar...' : 'ENTRAR SÓ COM O MEU NOME'}
+        </button>
       ) : !vm.isJoined ? (
         <button
           type="button"
-          disabled={vm.joining || (vm.isGuestViewer && !vm.canGuestJoin)}
-          onClick={() => {
-            if (vm.isGuestViewer) {
-              vm.openGuestJoin();
-              return;
-            }
-            void vm.handleRequestToJoin();
-          }}
+          disabled={vm.joining}
+          onClick={() => void vm.handleRequestToJoin()}
           className="w-full rounded-lg bg-[#BFFF00] py-3 text-sm font-bold text-black disabled:opacity-60">
           {vm.joining
             ? 'A enviar...'
-            : vm.isGuestViewer
-              ? 'ENTRAR SÓ COM O MEU NOME'
-              : vm.seriesId
-                ? 'ENTRAR NA PELADA'
-                : 'QUERO PARTICIPAR'}
+            : vm.seriesId
+              ? 'ENTRAR NA PELADA'
+              : 'QUERO PARTICIPAR'}
         </button>
       ) : vm.isPendingApproval ? (
         <div className="flex items-center justify-center gap-2 rounded-lg border border-[#333] py-3 text-sm font-bold text-[#888]">

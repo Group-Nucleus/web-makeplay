@@ -35,7 +35,11 @@ import {
   updateParticipantStatus,
 } from '@/lib/repositories/match';
 import { joinSeries, leaveSeries, setOccurrenceAttendance } from '@/lib/repositories/match-series';
-import { canAccessPrivateMatch, canManageSeries } from '@/lib/utils/seriesAccess';
+import {
+  canAccessPrivateMatch,
+  canGuestJoinWithInvite,
+  canManageSeries,
+} from '@/lib/utils/seriesAccess';
 import {
   ensureSeriesMembershipInRoster,
   isSeriesMembershipRequiredError,
@@ -87,6 +91,12 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   useEffect(() => {
     setLocalGuest(getGuestParticipant(matchId));
   }, [matchId]);
+
+  useEffect(() => {
+    if (!inviteCodeResolved && doc?.inviteCode) {
+      setInviteCodeResolved(normalizeInviteIndexId(doc.inviteCode));
+    }
+  }, [inviteCodeResolved, doc?.inviteCode]);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -197,14 +207,14 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     organizerUids,
     canSeeSensitive: viewerFlags.canSeeSensitive,
   });
-  const isSeriesMember = attendance !== null;
+  const isSeriesMember = !!seriesId && viewerFlags.isParticipant;
   const canMarkOccurrenceAttendance =
     !!seriesId &&
     !!user &&
     !isGuestViewer &&
-    (isOrganizer || viewerFlags.isParticipant || isSeriesMember);
+    (isOrganizer || viewerFlags.isParticipant || attendance !== null);
   const isJoined =
-    viewerFlags.isParticipant || localGuest !== null || isOrganizer || isSeriesMember;
+    viewerFlags.isParticipant || localGuest !== null || isOrganizer;
   const isPendingApproval = !isOrganizer && myStatus === 'aguardando-aprovacao';
   const viewerJoined = isJoined && !isPendingApproval;
 
@@ -216,14 +226,15 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       return aOrg - bOrg;
     });
   };
-  const canGuestJoin =
-    isGuestViewer &&
-    !isJoined &&
-    !accessBlocked &&
-    doc?.matchStatus !== 'cancelled' &&
-    (privacy === 'public' ||
-      privacy === 'invite-only' ||
-      !!codeNorm);
+  const canGuestJoin = canGuestJoinWithInvite({
+    isGuestViewer,
+    hasLocalGuest: localGuest !== null,
+    isParticipant: viewerFlags.isParticipant,
+    accessBlocked,
+    matchCancelled: doc?.matchStatus === 'cancelled',
+    inviteCode: codeNorm,
+    privacy,
+  });
 
   const handleGuestJoin = async (name: string) => {
     setJoining(true);
@@ -279,7 +290,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
 
   const handleLeave = async () => {
     if (!user) return;
-    if (seriesId && (isSeriesMember || viewerFlags.isParticipant)) {
+    if (seriesId && viewerFlags.isParticipant) {
       await leaveSeries(seriesId);
     } else {
       await leaveMatch(matchId);
