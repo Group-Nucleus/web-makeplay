@@ -59,10 +59,11 @@ export function useSeriesDetail(seriesId: string, inviteCode?: string) {
   const [shareFeedback, setShareFeedback] = useState('');
   const [error, setError] = useState('');
 
-  const qKey = seriesKeys.detail(seriesId, codeNorm);
+  const qKey = seriesKeys.detail(seriesId, codeNorm, user?.uid ?? '');
 
   const { data: queryData, isLoading: loading } = useQuery({
     queryKey: qKey,
+    enabled: !authLoading,
     queryFn: async (): Promise<SeriesQueryResult> => {
       try {
         const detail = await getSeriesDetail(seriesId, codeNorm || undefined);

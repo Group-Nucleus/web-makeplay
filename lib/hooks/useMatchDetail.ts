@@ -97,10 +97,11 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     setInviteCodeResolved(resolveMatchInviteCode(matchId, inviteCode));
   }, [matchId, inviteCode]);
 
-  const qKey = matchKeys.detail(matchId, codeNorm, localGuest?.guestToken);
+  const qKey = matchKeys.detail(matchId, codeNorm, localGuest?.guestToken, user?.uid ?? '');
 
   const { data: queryData, isLoading: loading } = useQuery({
     queryKey: qKey,
+    enabled: !authLoading,
     queryFn: async (): Promise<MatchQueryResult> => {
       const guestToken = localGuest?.guestToken;
       try {

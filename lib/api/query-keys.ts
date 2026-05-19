@@ -1,9 +1,9 @@
 export const matchKeys = {
-  detail: (matchId: string, codeNorm = '', guestToken = '') =>
-    ['match-detail', matchId, codeNorm, guestToken] as const,
+  detail: (matchId: string, codeNorm = '', guestToken = '', userId = '') =>
+    ['match-detail', matchId, codeNorm, guestToken, userId] as const,
 };
 
 export const seriesKeys = {
-  detail: (seriesId: string, codeNorm = '') =>
-    ['series-detail', seriesId, codeNorm] as const,
+  detail: (seriesId: string, codeNorm = '', userId = '') =>
+    ['series-detail', seriesId, codeNorm, userId] as const,
 };
