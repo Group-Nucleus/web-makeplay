@@ -10,6 +10,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { shouldUseGuestShell } from '@/lib/guestRoutes';
 import { createQueryClient } from '@/lib/api/query-client';
+import { Analytics } from '@vercel/analytics/next';
 
 function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <AuthGate>
           <ErrorBoundary>
             <Shell>{children}</Shell>
+            <Analytics />
           </ErrorBoundary>
         </AuthGate>
       </AuthProvider>
