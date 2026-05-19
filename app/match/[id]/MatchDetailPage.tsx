@@ -189,7 +189,7 @@ export function MatchDetailPage({
               inviteCode={vm.canShare ? doc?.inviteCode : undefined}
               onCopyCode={vm.handleCopyInviteCode}
             />
-            {doc && <MatchDetails doc={doc} />}
+            {doc && <MatchDetails doc={doc} isGuest={vm.isGuestViewer} onLogin={() => router.push('/login')} />}
           </div>
         </aside>
 
@@ -356,11 +356,42 @@ function formatMoney(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function MatchDetails({ doc }: { doc: MatchDocument }) {
-  const typeLabel = doc.type === 'weekly' ? 'Grupo semanal' : 'Jogo avulso';
+function MatchDetails({
+  doc,
+  isGuest = false,
+  onLogin,
+}: {
+  doc: MatchDocument;
+  isGuest?: boolean;
+  onLogin?: () => void;
+}) {
   const description =
     doc.description?.trim() ||
     'Sem descrição adicional. Usa o convite para chamar jogadores e gerir a lista.';
+
+  if (isGuest) {
+    return (
+      <div className="space-y-4 border-t border-elevated px-4 pb-4 pt-4">
+        <div>
+          <h3 className="mb-2 text-xs font-bold tracking-wider text-muted">DESCRIÇÃO</h3>
+          <p className="text-sm leading-relaxed text-dim">{description}</p>
+        </div>
+        <div>
+          <dl className="space-y-2.5">
+            <DetailRow label="Preço avulso" value={formatMoney(doc.pricePerGame)} />
+          </dl>
+        </div>
+        <button
+          type="button"
+          onClick={onLogin}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-line py-3 text-sm font-semibold text-white hover:border-[#555]">
+          Entrar para ver todos os detalhes
+        </button>
+      </div>
+    );
+  }
+
+  const typeLabel = doc.type === 'weekly' ? 'Grupo semanal' : 'Jogo avulso';
 
   return (
     <div className="space-y-4 border-t border-elevated px-4 pb-4 pt-4">
@@ -465,7 +496,7 @@ function InfoTab({
       progressPercent={vm.progressPercent}
     />
 
-    {!vm.canSeeParticipantNames && !vm.isGuestViewer && (
+    {!vm.canSeeParticipantNames && !vm.isGuestViewer && !vm.canManage && (
       <p className="mb-4 text-sm text-muted">
         A lista completa de jogadores é visível apenas para o organizador e admins.
       </p>
@@ -533,10 +564,6 @@ function PlayersTab({
           remaining={vm.remaining}
           progressPercent={vm.progressPercent}
         />
-        <p className="mb-4 text-sm text-muted">
-          As vagas ocupadas aparecem sem nomes. Entra com conta para ver a lista completa e
-          convidar outros jogadores.
-        </p>
         <MatchSlotsGrid
           spots={vm.spots}
           filledCount={vm.confirmed}
