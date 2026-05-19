@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 
 import { ApiError } from '@/lib/api/client';
 import { editMatchSchema, type EditMatchFormValues } from '@/lib/schemas/editMatch';
@@ -20,7 +21,6 @@ export function useEditMatch(
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [venueRemoved, setVenueRemoved] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const resetFromDoc = useCallback((d: MatchDocument) => {
@@ -54,6 +54,16 @@ export function useEditMatch(
     if (doc) resetFromDoc(doc);
   }, [doc, resetFromDoc]);
 
+  const editMutation = useMutation({
+    mutationFn: (body: UpdateMatchPayload) => updateMatch(matchId, body),
+    onSuccess: () => onSaved(),
+    onError: (e) => {
+      setSubmitError(
+        e instanceof ApiError ? e.message : 'Erro ao guardar alterações. Tente novamente.',
+      );
+    },
+  });
+
   const setField = <K extends keyof EditMatchFormValues>(
     key: K,
     value: EditMatchFormValues[K],
@@ -65,13 +75,11 @@ export function useEditMatch(
     setSelectedVenue(venue);
     setVenueRemoved(venue === null && !!initialVenueIdRef.current);
     if (venue) {
-      setForm((f) =>
-        f ? { ...f, location: venue.address || f.location } : f,
-      );
+      setForm((f) => (f ? { ...f, location: venue.address || f.location } : f));
     }
   };
 
-  const submit = async () => {
+  const submit = () => {
     if (!form || !doc) return;
 
     const parsed = editMatchSchema.safeParse(form);
@@ -90,9 +98,6 @@ export function useEditMatch(
       );
       return;
     }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
 
     const body: UpdateMatchPayload = {
       sport: form.sport as SportType,
@@ -114,34 +119,18 @@ export function useEditMatch(
       description: form.description.trim() || null,
     };
 
-    if (!doc.seriesId) {
-      body.type = doc.type;
-    }
+    if (!doc.seriesId) body.type = doc.type;
+    if (selectedVenue) body.venueId = selectedVenue.id;
+    else if (venueRemoved) body.venueId = null;
 
-    if (selectedVenue) {
-      body.venueId = selectedVenue.id;
-    } else if (venueRemoved) {
-      body.venueId = null;
-    }
-
-    try {
-      await updateMatch(matchId, body);
-      onSaved();
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setSubmitError(e.message);
-      } else {
-        setSubmitError('Erro ao guardar alterações. Tente novamente.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    setSubmitError(null);
+    editMutation.mutate(body);
   };
 
   return {
     form,
     errors,
-    isSubmitting,
+    isSubmitting: editMutation.isPending,
     submitError,
     selectedVenue,
     initialVenueId: initialVenueIdRef.current,

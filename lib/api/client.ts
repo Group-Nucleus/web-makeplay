@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 import { API_BASE_URL } from '@/lib/config';
 import { getAccessToken } from '@/lib/api/token';
 
@@ -12,51 +14,56 @@ export class ApiError extends Error {
   }
 }
 
-type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    skipAuth?: boolean;
+  }
+  interface AxiosRequestConfig {
+    skipAuth?: boolean;
+  }
+}
+
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { Accept: 'application/json' },
+});
+
+apiClient.interceptors.request.use((config) => {
+  if (!config.skipAuth) {
+    const token = getAccessToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response) {
+      const { status, data } = error.response;
+      const errData = data as { error?: { message?: string; code?: string } };
+      const message = errData?.error?.message ?? error.message ?? 'Erro na API';
+      const code = errData?.error?.code ?? 'ERROR';
+      return Promise.reject(new ApiError(status, code, message));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export interface ApiRequestOptions {
-  method?: ApiMethod;
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   skipAuth?: boolean;
 }
 
-async function parseErrorMessage(res: Response): Promise<string> {
-  try {
-    const json = (await res.json()) as { error?: { message?: string } };
-    return json.error?.message ?? res.statusText;
-  } catch {
-    return res.statusText || 'Erro na API';
-  }
-}
-
 export async function api<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { method = 'GET', body, skipAuth = false } = options;
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (!skipAuth) {
-    const token = getAccessToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-  }
-  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
-  const res = await fetch(url, {
+  const url = path.startsWith('/') ? path : `/${path}`;
+  const response = await apiClient.request<T>({
+    url,
     method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (res.status === 204) return undefined as T;
-  if (!res.ok) {
-    const message = await parseErrorMessage(res);
-    let code = 'ERROR';
-    try {
-      const clone = res.clone();
-      const json = (await clone.json()) as { error?: { code?: string } };
-      code = json.error?.code ?? code;
-    } catch {
-      //
-    }
-    throw new ApiError(res.status, code, message);
-  }
-  const text = await res.text();
-  if (!text.trim()) return undefined as T;
-  return JSON.parse(text) as T;
+    data: body,
+    skipAuth,
+  } as Parameters<typeof apiClient.request>[0]);
+  return response.data;
 }

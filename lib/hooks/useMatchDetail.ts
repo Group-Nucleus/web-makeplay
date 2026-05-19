@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/lib/auth/context';
 import {
@@ -10,7 +11,7 @@ import {
   participantFromApiDto,
 } from '@/lib/mappers/match';
 import type { Match } from '@/lib/models/match';
-import type { MatchDocument, ParticipantStatus } from '@/lib/models/match-document';
+import type { MatchDocument, ParticipantDocument, ParticipantStatus } from '@/lib/models/match-document';
 import { POLL_MATCH_DETAIL_MS } from '@/lib/constants';
 import { buildInviteUrl } from '@/lib/config';
 import { matchPathWithCode } from '@/lib/guestRoutes';
@@ -50,156 +51,185 @@ import {
   setPendingGuestClaimToken,
   type GuestParticipantRecord,
 } from '@/lib/storage/guestParticipant';
+import { matchKeys } from '@/lib/api/query-keys';
+
+const DEFAULT_VIEWER_FLAGS = {
+  isOrganizer: false,
+  isParticipant: false,
+  myParticipantId: null as string | null,
+  myStatus: null as ParticipantStatus | null,
+  canSeeSensitive: false,
+};
+
+interface MatchQueryResult {
+  accessBlocked: boolean;
+  loadError: string;
+  match: Match | null;
+  doc: MatchDocument | null;
+  participants: ParticipantDocument[];
+  organizerName: string;
+  seriesId: string | null;
+  viewerFlags: typeof DEFAULT_VIEWER_FLAGS;
+  canSeeParticipantNames: boolean;
+  attendance: OccurrenceAttendanceDto | null;
+}
 
 export function useMatchDetail(matchId: string, inviteCode?: string) {
   const { user, loading: authLoading, apiSessionReady } = useAuth();
+  const queryClient = useQueryClient();
+
   const [inviteCodeResolved, setInviteCodeResolved] = useState(() =>
     resolveMatchInviteCode(matchId, inviteCode),
   );
   const codeNorm = inviteCodeResolved;
   const isGuestViewer = !authLoading && !user;
 
-  useEffect(() => {
-    setInviteCodeResolved(resolveMatchInviteCode(matchId, inviteCode));
-  }, [matchId, inviteCode]);
-
-  const [match, setMatch] = useState<Match | null>(null);
-  const [doc, setDoc] = useState<MatchDocument | null>(null);
-  const [participants, setParticipants] = useState<ReturnType<typeof participantFromApiDto>[]>([]);
-  const [organizerName, setOrganizerName] = useState('');
-  const [viewerFlags, setViewerFlags] = useState({
-    isOrganizer: false,
-    isParticipant: false,
-    myParticipantId: null as string | null,
-    myStatus: null as ParticipantStatus | null,
-    canSeeSensitive: false,
-  });
   const [localGuest, setLocalGuest] = useState<GuestParticipantRecord | null>(null);
   const [guestJoinOpen, setGuestJoinOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
-  const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [shareFeedback, setShareFeedback] = useState('');
-  const [canSeeParticipantNames, setCanSeeParticipantNames] = useState(false);
-  const [managing, setManaging] = useState(false);
-  const [seriesId, setSeriesId] = useState<string | null>(null);
-  const [attendance, setAttendance] = useState<OccurrenceAttendanceDto | null>(null);
-  const [attendanceBusy, setAttendanceBusy] = useState(false);
-  const [accessBlocked, setAccessBlocked] = useState(false);
 
   useEffect(() => {
     setLocalGuest(getGuestParticipant(matchId));
   }, [matchId]);
 
   useEffect(() => {
-    if (!inviteCodeResolved && doc?.inviteCode) {
-      setInviteCodeResolved(normalizeInviteIndexId(doc.inviteCode));
-    }
-  }, [inviteCodeResolved, doc?.inviteCode]);
+    setInviteCodeResolved(resolveMatchInviteCode(matchId, inviteCode));
+  }, [matchId, inviteCode]);
 
-  const load = useCallback(async (options?: { silent?: boolean }) => {
-    if (!options?.silent) setLoading(true);
-    setLoadError('');
-    setAccessBlocked(false);
-    const guestToken = localGuest?.guestToken;
-    try {
-      let detail;
+  const qKey = matchKeys.detail(matchId, codeNorm, localGuest?.guestToken);
+
+  const { data: queryData, isLoading: loading } = useQuery({
+    queryKey: qKey,
+    queryFn: async (): Promise<MatchQueryResult> => {
+      const guestToken = localGuest?.guestToken;
       try {
-        detail = await getMatchDetail(matchId, codeNorm || undefined, guestToken);
-      } catch {
-        const teaser = await getMatchTeaser(matchId, codeNorm || undefined);
-        detail = {
-          match: teaser,
-          participants: [],
-          viewer: {
-            isOrganizer: false,
-            isParticipant: false,
-            myParticipantId: null,
-            myStatus: null,
-            canSeeSensitive: false,
+        let detail;
+        try {
+          detail = await getMatchDetail(matchId, codeNorm || undefined, guestToken);
+        } catch {
+          const teaser = await getMatchTeaser(matchId, codeNorm || undefined);
+          detail = {
+            match: teaser,
+            participants: [] as [],
+            viewer: { ...DEFAULT_VIEWER_FLAGS },
+            organizer: undefined,
+            seriesId: null as string | null,
+            attendance: undefined,
+          };
+        }
+
+        const resolvedSeriesId = detail.seriesId ?? detail.match.seriesId ?? null;
+        const allowed = canAccessPrivateMatch({
+          privacy: detail.match.privacy,
+          inviteCode: codeNorm || undefined,
+          isOrganizer: detail.viewer.isOrganizer,
+          isParticipant: detail.viewer.isParticipant || detail.attendance != null,
+        });
+
+        if (!allowed) {
+          return {
+            accessBlocked: true,
+            loadError: '',
+            match: null,
+            doc: null,
+            participants: [],
+            organizerName: '',
+            seriesId: resolvedSeriesId,
+            viewerFlags: { ...DEFAULT_VIEWER_FLAGS },
+            canSeeParticipantNames: false,
+            attendance: null,
+          };
+        }
+
+        const canSeeSensitive = detail.viewer.canSeeSensitive;
+        if (codeNorm) {
+          setGuestInviteContext({ target: 'match', matchId, code: codeNorm });
+        }
+
+        return {
+          accessBlocked: false,
+          loadError: '',
+          match: matchListItemFromApiItem({ ...detail.match, id: matchId }),
+          doc: matchDocumentFromApiDetail(detail),
+          participants: canSeeSensitive
+            ? (detail.participants ?? []).map(participantFromApiDto)
+            : [],
+          organizerName: detail.organizer?.displayName ?? '',
+          seriesId: resolvedSeriesId,
+          viewerFlags: {
+            isOrganizer: detail.viewer.isOrganizer,
+            isParticipant: detail.viewer.isParticipant,
+            myParticipantId: detail.viewer.myParticipantId,
+            myStatus: detail.viewer.myStatus,
+            canSeeSensitive,
           },
+          canSeeParticipantNames: canSeeSensitive,
+          attendance: detail.attendance ?? null,
+        };
+      } catch {
+        if (codeNorm) {
+          const row = await getInviteByCode(codeNorm);
+          if (row && row.matchId === matchId && row.target !== 'series') {
+            return {
+              accessBlocked: false,
+              loadError: '',
+              match: matchFromInviteIndexDto(row),
+              doc: null,
+              participants: [],
+              organizerName: '',
+              seriesId: null,
+              viewerFlags: { ...DEFAULT_VIEWER_FLAGS },
+              canSeeParticipantNames: false,
+              attendance: null,
+            };
+          }
+        }
+        return {
+          accessBlocked: false,
+          loadError: 'Partida não encontrada',
+          match: null,
+          doc: null,
+          participants: [],
+          organizerName: '',
+          seriesId: null,
+          viewerFlags: { ...DEFAULT_VIEWER_FLAGS },
+          canSeeParticipantNames: false,
+          attendance: null,
         };
       }
-      const m = matchListItemFromApiItem({ ...detail.match, id: matchId });
-      setMatch(m);
-      setDoc(matchDocumentFromApiDetail(detail));
-      const canSeeSensitive = detail.viewer.canSeeSensitive;
-      const plist = canSeeSensitive ? (detail.participants ?? []) : [];
-      setCanSeeParticipantNames(canSeeSensitive);
-      setParticipants(plist.map(participantFromApiDto));
-      setOrganizerName(detail.organizer?.displayName ?? '');
-      if (codeNorm) {
-        setGuestInviteContext({ target: 'match', matchId, code: codeNorm });
-      }
-      const resolvedSeriesId = detail.seriesId ?? detail.match.seriesId ?? null;
-      const privacy = detail.match.privacy;
-      const allowed = canAccessPrivateMatch({
-        privacy,
-        inviteCode: codeNorm || undefined,
-        isOrganizer: detail.viewer.isOrganizer,
-        isParticipant: detail.viewer.isParticipant || detail.attendance != null,
-      });
-      if (!allowed) {
-        setAccessBlocked(true);
-        setMatch(null);
-        setDoc(null);
-        setSeriesId(resolvedSeriesId);
-        return;
-      }
+    },
+    refetchInterval: () => {
+      const needsPoll = apiSessionReady || !!codeNorm || isGuestViewer || !!localGuest;
+      return needsPoll ? POLL_MATCH_DETAIL_MS : false;
+    },
+    refetchIntervalInBackground: false,
+    staleTime: 4_000,
+  });
 
-      setSeriesId(resolvedSeriesId);
-      setAttendance(detail.attendance ?? null);
-      setViewerFlags({
-        isOrganizer: detail.viewer.isOrganizer,
-        isParticipant: detail.viewer.isParticipant,
-        myParticipantId: detail.viewer.myParticipantId,
-        myStatus: detail.viewer.myStatus,
-        canSeeSensitive: detail.viewer.canSeeSensitive,
-      });
-    } catch {
-      if (codeNorm) {
-        const row = await getInviteByCode(codeNorm);
-        if (row && row.matchId === matchId && row.target !== 'series') {
-          setMatch(matchFromInviteIndexDto(row));
-          setAccessBlocked(false);
-        } else {
-          setLoadError('Partida não encontrada');
-        }
-      } else {
-        setAccessBlocked(true);
-        setLoadError('Partida não encontrada');
-      }
-    } finally {
-      if (!options?.silent) setLoading(false);
+  useEffect(() => {
+    if (!inviteCodeResolved && queryData?.doc?.inviteCode) {
+      setInviteCodeResolved(normalizeInviteIndexId(queryData.doc.inviteCode));
     }
-  }, [matchId, codeNorm, localGuest?.guestToken]);
+  }, [inviteCodeResolved, queryData?.doc?.inviteCode]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    const needsPoll =
-      apiSessionReady || !!codeNorm || isGuestViewer || !!localGuest;
-    if (!needsPoll) return;
-
-    const tick = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      void load({ silent: true });
-    };
-
-    const t = setInterval(tick, POLL_MATCH_DETAIL_MS);
-    return () => clearInterval(t);
-  }, [load, apiSessionReady, codeNorm, isGuestViewer, localGuest]);
+  // --- Derived state ---
+  const match = queryData?.match ?? null;
+  const doc = queryData?.doc ?? null;
+  const participants = queryData?.participants ?? [];
+  const organizerName = queryData?.organizerName ?? '';
+  const seriesId = queryData?.seriesId ?? null;
+  const viewerFlags = queryData?.viewerFlags ?? DEFAULT_VIEWER_FLAGS;
+  const canSeeParticipantNames = queryData?.canSeeParticipantNames ?? false;
+  const accessBlocked = queryData?.accessBlocked ?? false;
+  const loadError = queryData?.loadError ?? '';
+  const attendance = queryData?.attendance ?? null;
 
   const privacy = doc?.privacy ?? match?.privacy;
-  const myStatus: ParticipantStatus | null =
-    viewerFlags.myStatus ?? localGuest?.status ?? null;
+  const myStatus: ParticipantStatus | null = viewerFlags.myStatus ?? localGuest?.status ?? null;
   const isOrganizer = viewerFlags.isOrganizer;
-  const viewerParticipantId =
-    viewerFlags.myParticipantId ?? localGuest?.participantId ?? null;
-  const organizerUid = doc?.organizers?.[0] ?? doc?.createdBy;
+  const viewerParticipantId = viewerFlags.myParticipantId ?? localGuest?.participantId ?? null;
+  const organizerUid = doc?.createdBy ?? doc?.organizers?.[0];
   const organizerUids = doc?.organizers ?? [];
   const canManage = canManageSeries({
     userId: user?.uid,
@@ -213,8 +243,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     !!user &&
     !isGuestViewer &&
     (isOrganizer || viewerFlags.isParticipant || attendance !== null);
-  const isJoined =
-    viewerFlags.isParticipant || localGuest !== null || isOrganizer;
+  const isJoined = viewerFlags.isParticipant || localGuest !== null || isOrganizer;
   const isPendingApproval = !isOrganizer && myStatus === 'aguardando-aprovacao';
   const viewerJoined = isJoined && !isPendingApproval;
 
@@ -230,6 +259,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       return score(a.uid) - score(b.uid);
     });
   };
+
   const canGuestJoin = canGuestJoinWithInvite({
     isGuestViewer,
     hasLocalGuest: localGuest !== null,
@@ -240,120 +270,8 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     privacy,
   });
 
-  const handleGuestJoin = async (name: string) => {
-    setJoining(true);
-    setActionError('');
-    try {
-      const participant = await joinMatchAsGuest(
-        matchId,
-        name,
-        codeNorm || doc?.inviteCode || undefined,
-      );
-      const record: GuestParticipantRecord = {
-        participantId: participant.id,
-        name: participant.name,
-        status: participant.status,
-        guestToken: participant.guestToken ?? undefined,
-      };
-      setGuestParticipant(matchId, record);
-      if (participant.guestToken) {
-        setPendingGuestClaimToken(participant.guestToken);
-      }
-      setLocalGuest(record);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao participar');
-      throw e;
-    } finally {
-      setJoining(false);
-    }
-  };
-
-  const handleRequestToJoin = async () => {
-    if (joining || isOrganizer) return;
-    if (isGuestViewer) {
-      if (canGuestJoin) setGuestJoinOpen(true);
-      return;
-    }
-    if (!apiSessionReady) return;
-    setJoining(true);
-    setActionError('');
-    try {
-      if (seriesId) {
-        await joinSeries(seriesId, 'aguardando-aprovacao');
-      } else {
-        await joinMatch(matchId, 'aguardando-aprovacao');
-      }
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao participar');
-    } finally {
-      setJoining(false);
-    }
-  };
-
-  const handleLeave = async () => {
-    if (!user) return;
-    if (seriesId && viewerFlags.isParticipant) {
-      await leaveSeries(seriesId);
-    } else {
-      await leaveMatch(matchId);
-    }
-    await load();
-  };
-
-  const markOccurrenceAttendance = async (status: 'vou' | 'nao-vou') => {
-    if (!seriesId) return;
-    await ensureSeriesMembershipInRoster(seriesId, {
-      isParticipant: viewerFlags.isParticipant,
-      autoJoinAsMember: isOrganizer || canManage,
-    });
-    try {
-      await setOccurrenceAttendance(matchId, status);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : '';
-      if (isSeriesMembershipRequiredError(msg) && (isOrganizer || canManage)) {
-        await joinSeries(seriesId, 'dentro');
-        await setOccurrenceAttendance(matchId, status);
-        return;
-      }
-      throw e;
-    }
-  };
-
-  const handleSetAttendance = async (status: 'vou' | 'nao-vou') => {
-    if (!canMarkOccurrenceAttendance || !seriesId) return;
-    setAttendanceBusy(true);
-    setActionError('');
-    try {
-      await markOccurrenceAttendance(status);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao atualizar presença');
-    } finally {
-      setAttendanceBusy(false);
-    }
-  };
-
-  const handleCancelOccurrence = async (cancelNote: string) => {
-    if (!canManage) return;
-    setManaging(true);
-    setActionError('');
-    try {
-      await updateMatch(matchId, { status: 'cancelled', cancelNote: cancelNote || null });
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao cancelar semana');
-      throw e;
-    } finally {
-      setManaging(false);
-    }
-  };
-
   const spots = doc?.spots ?? match?.spots ?? 0;
-  const dentroList = sortOrganizerFirst(
-    participants.filter((p) => p.status === 'dentro'),
-  );
+  const dentroList = sortOrganizerFirst(participants.filter((p) => p.status === 'dentro'));
   const esperaList = participants.filter((p) => p.status === 'lista-espera');
   const foraList = participants.filter((p) => p.status === 'fora');
   const convidadoList = participants.filter((p) => p.status === 'convidado');
@@ -372,94 +290,140 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
   const defaultAttendanceSummary = { vou: 0, naoVou: 0, pendente: 0 };
   const canShare = canManage && !!user && !isGuestViewer;
 
-  const handleApproveParticipant = async (participantId: string) => {
-    const status = remaining > 0 ? 'dentro' : 'lista-espera';
-    await updateParticipantStatus(matchId, participantId, status);
-    await load();
-  };
+  // --- Mutation helpers ---
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: qKey }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, ...qKey],
+  );
 
-  const handleRejectParticipant = async (participantId: string) => {
-    await removeParticipant(matchId, participantId);
-    await load();
-  };
+  // --- Mutations ---
+  const guestJoinMutation = useMutation({
+    mutationFn: (name: string) =>
+      joinMatchAsGuest(matchId, name, codeNorm || doc?.inviteCode || undefined),
+    onSuccess: (participant) => {
+      const record: GuestParticipantRecord = {
+        participantId: participant.id,
+        name: participant.name,
+        status: participant.status,
+        guestToken: participant.guestToken ?? undefined,
+      };
+      setGuestParticipant(matchId, record);
+      if (participant.guestToken) setPendingGuestClaimToken(participant.guestToken);
+      setLocalGuest(record);
+    },
+  });
 
-  const handleTogglePaid = async (participantId: string) => {
-    if (!canManage) {
+  const joinMutation = useMutation({
+    mutationFn: () =>
+      seriesId
+        ? joinSeries(seriesId, 'aguardando-aprovacao')
+        : joinMatch(matchId, 'aguardando-aprovacao'),
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao participar'),
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: () =>
+      seriesId && viewerFlags.isParticipant ? leaveSeries(seriesId) : leaveMatch(matchId),
+    onSuccess: () => invalidate(),
+  });
+
+  const setAttendanceMutation = useMutation({
+    mutationFn: async (status: 'vou' | 'nao-vou') => {
+      if (!seriesId) return;
+      await ensureSeriesMembershipInRoster(seriesId, {
+        isParticipant: viewerFlags.isParticipant,
+        autoJoinAsMember: isOrganizer || canManage,
+      });
+      try {
+        await setOccurrenceAttendance(matchId, status);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (isSeriesMembershipRequiredError(msg) && (isOrganizer || canManage)) {
+          await joinSeries(seriesId, 'dentro');
+          await setOccurrenceAttendance(matchId, status);
+          return;
+        }
+        throw e;
+      }
+    },
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao atualizar presença'),
+  });
+
+  const cancelOccurrenceMutation = useMutation({
+    mutationFn: (cancelNote: string) =>
+      updateMatch(matchId, { status: 'cancelled', cancelNote: cancelNote || null }),
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao cancelar semana'),
+  });
+
+  const approveParticipantMutation = useMutation({
+    mutationFn: (participantId: string) => {
+      const status = remaining > 0 ? 'dentro' : 'lista-espera';
+      return updateParticipantStatus(matchId, participantId, status);
+    },
+    onSuccess: () => invalidate(),
+  });
+
+  const rejectParticipantMutation = useMutation({
+    mutationFn: (participantId: string) => removeParticipant(matchId, participantId),
+    onSuccess: () => invalidate(),
+  });
+
+  const togglePaidMutation = useMutation({
+    mutationFn: (participantId: string) => {
       const p = participants.find((x) => x.id === participantId);
-      if (p?.uid !== user?.uid) return;
-    }
-    const p = participants.find((x) => x.id === participantId);
-    if (!p) return;
-    setManaging(true);
-    try {
-      await toggleParticipantPaid(matchId, participantId, !p.isPaid);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao atualizar pagamento');
-    } finally {
-      setManaging(false);
-    }
-  };
+      if (!p) throw new Error('Participante não encontrado');
+      if (!canManage && p.uid !== user?.uid) throw new Error('Sem permissão');
+      return toggleParticipantPaid(matchId, participantId, !p.isPaid);
+    },
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao atualizar pagamento'),
+  });
 
-  const handleMoveParticipant = async (participantId: string, status: ParticipantStatus) => {
-    if (!canManage) return;
-    setManaging(true);
-    setActionError('');
-    try {
-      await updateParticipantStatus(matchId, participantId, status);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao mover jogador');
-      throw e;
-    } finally {
-      setManaging(false);
-    }
-  };
+  const moveParticipantMutation = useMutation({
+    mutationFn: ({
+      participantId,
+      status,
+    }: {
+      participantId: string;
+      status: ParticipantStatus;
+    }) => updateParticipantStatus(matchId, participantId, status),
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao mover jogador'),
+  });
 
-  const handleRemoveParticipant = async (participantId: string) => {
-    if (!canManage) return;
-    setManaging(true);
-    setActionError('');
-    try {
-      await removeParticipant(matchId, participantId);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao remover jogador');
-      throw e;
-    } finally {
-      setManaging(false);
-    }
-  };
+  const removeParticipantMutation = useMutation({
+    mutationFn: (participantId: string) => removeParticipant(matchId, participantId),
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao remover jogador'),
+  });
 
-  const handleAddOrganizer = async (userId: string) => {
-    if (!canManage) return;
-    setManaging(true);
-    setActionError('');
-    try {
-      await addMatchOrganizer(matchId, userId);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao adicionar admin');
-      throw e;
-    } finally {
-      setManaging(false);
-    }
-  };
+  const addOrganizerMutation = useMutation({
+    mutationFn: (userId: string) => addMatchOrganizer(matchId, userId),
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao adicionar admin'),
+  });
 
-  const handleRemoveOrganizer = async (userId: string) => {
-    if (!canManage) return;
-    setManaging(true);
-    setActionError('');
-    try {
-      await removeMatchOrganizer(matchId, userId);
-      await load();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Erro ao remover admin');
-    } finally {
-      setManaging(false);
-    }
-  };
+  const removeOrganizerMutation = useMutation({
+    mutationFn: (userId: string) => removeMatchOrganizer(matchId, userId),
+    onSuccess: () => invalidate(),
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Erro ao remover admin'),
+  });
 
+  const managing =
+    approveParticipantMutation.isPending ||
+    rejectParticipantMutation.isPending ||
+    togglePaidMutation.isPending ||
+    moveParticipantMutation.isPending ||
+    removeParticipantMutation.isPending ||
+    addOrganizerMutation.isPending ||
+    removeOrganizerMutation.isPending ||
+    cancelOccurrenceMutation.isPending;
+
+  // --- Share utils ---
   const copyText = async (text: string, feedback: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -477,15 +441,9 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     const message = `Confirma presença na ${match.title}?\n\n${url}`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({
-          title: match.title,
-          text: message,
-          url,
-        });
+        await navigator.share({ title: match.title, text: message, url });
         return;
-      } catch {
-        /* fallback copy */
-      }
+      } catch { /* fallback */ }
     }
     await copyText(message, 'Link de convite copiado!');
   };
@@ -498,9 +456,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
       try {
         await navigator.share({ title: `Jogadores — ${match.title}`, text: message });
         return;
-      } catch {
-        /* fallback */
-      }
+      } catch { /* fallback */ }
     }
     await copyText(message, 'Lista copiada!');
   };
@@ -517,7 +473,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     participants,
     organizerName,
     loading,
-    joining,
+    joining: joinMutation.isPending || guestJoinMutation.isPending,
     loadError,
     actionError,
     shareFeedback,
@@ -529,9 +485,7 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     canGuestJoin,
     guestJoinOpen,
     setGuestJoinOpen,
-    openGuestJoin: () => {
-      if (canGuestJoin) setGuestJoinOpen(true);
-    },
+    openGuestJoin: () => { if (canGuestJoin) setGuestJoinOpen(true); },
     isJoined,
     isPendingApproval,
     viewerJoined,
@@ -545,9 +499,9 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     attendanceSummary: attendance?.summary ?? defaultAttendanceSummary,
     canMarkOccurrenceAttendance,
     isSeriesMember,
-    attendanceBusy,
-    handleSetAttendance,
-    handleCancelOccurrence,
+    attendanceBusy: setAttendanceMutation.isPending,
+    handleSetAttendance: (s: 'vou' | 'nao-vou') => setAttendanceMutation.mutate(s),
+    handleCancelOccurrence: (note: string) => cancelOccurrenceMutation.mutateAsync(note),
     spots,
     confirmed,
     remaining,
@@ -557,21 +511,30 @@ export function useMatchDetail(matchId: string, inviteCode?: string) {
     foraList,
     convidadoList,
     aguardandoList,
-    handleGuestJoin,
-    handleRequestToJoin,
-    handleLeave,
+    handleGuestJoin: async (name: string) => { await guestJoinMutation.mutateAsync(name); },
+    handleRequestToJoin: async () => {
+      if (joinMutation.isPending || isOrganizer) return;
+      if (isGuestViewer) {
+        if (canGuestJoin) setGuestJoinOpen(true);
+        return;
+      }
+      if (!apiSessionReady) return;
+      joinMutation.mutate();
+    },
+    handleLeave: () => leaveMutation.mutateAsync(),
     handleShareInvite,
     handleSharePlayersList,
     handleCopyInviteCode,
-    handleApproveParticipant,
-    handleRejectParticipant,
-    handleTogglePaid,
-    handleMoveParticipant,
-    handleRemoveParticipant,
-    handleAddOrganizer,
-    handleRemoveOrganizer,
+    handleApproveParticipant: (id: string) => approveParticipantMutation.mutateAsync(id),
+    handleRejectParticipant: (id: string) => rejectParticipantMutation.mutateAsync(id),
+    handleTogglePaid: (id: string) => togglePaidMutation.mutateAsync(id),
+    handleMoveParticipant: (participantId: string, status: ParticipantStatus) =>
+      moveParticipantMutation.mutateAsync({ participantId, status }),
+    handleRemoveParticipant: (id: string) => removeParticipantMutation.mutateAsync(id),
+    handleAddOrganizer: (userId: string) => addOrganizerMutation.mutateAsync(userId),
+    handleRemoveOrganizer: (userId: string) => removeOrganizerMutation.mutateAsync(userId),
     organizerUids,
     managing,
-    reload: load,
+    reload: () => queryClient.invalidateQueries({ queryKey: qKey }),
   };
 }
