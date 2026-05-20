@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import { getAccessToken } from '@/lib/api/token';
+import { getSessionUser } from '@/lib/api/token';
 import type { CreateWeeklyMatchResponseDto } from '@/lib/api/types/match-series';
 import type {
   CreateMatchApiResponse,
@@ -83,7 +83,7 @@ export async function getMatchDetail(
   guestToken?: string,
 ): Promise<MatchDetailResponseDto> {
   const code = inviteCode ? normalizeInviteIndexId(inviteCode) : undefined;
-  const skipAuth = !getAccessToken() && (!!code || !!guestToken);
+  const skipAuth = !getSessionUser() && (!!code || !!guestToken);
   return api<MatchDetailResponseDto>(
     `/matches/${matchId}${queryString({ code, guestToken })}`,
     skipAuth ? { skipAuth: true } : {},

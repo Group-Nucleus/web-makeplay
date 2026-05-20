@@ -15,7 +15,7 @@ import {
   restoreApiSession,
 } from '@/lib/repositories/auth';
 import { auth, googleProvider } from '@/lib/firebase/client';
-import { getAccessToken, getSessionUser, type StoredUser } from '@/lib/api/token';
+import { getSessionUser, type StoredUser } from '@/lib/api/token';
 
 interface AuthContextValue {
   user: StoredUser | null;
@@ -51,8 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void (async () => {
       const cached = getSessionUser();
-      const token = getAccessToken();
-      if (cached && token) {
+      if (cached) {
         phoneSessionRef.current = true;
         setPhoneUser(cached);
         setApiSessionReady(true);
@@ -66,6 +65,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (fbUser) {
         phoneSessionRef.current = false;
         setPhoneUser(null);
+
+        const cachedUser = getSessionUser();
+
+        if (cachedUser?.uid === fbUser.uid) {
+          // Fast path: cached session is valid, unblock UI immediately
+          if (!cancelled) {
+            setApiSessionReady(true);
+            setLoading(false);
+          }
+          // Refresh token in background without blocking
+          void (async () => {
+            try {
+              const idToken = await fbUser.getIdToken();
+              await createApiSession(idToken);
+            } catch (err) {
+              console.error('[Auth] Falha renovação sessão API (Google):', err);
+            }
+          })();
+          return;
+        }
+
+        // Slow path: no cached session, must wait for API
         setApiSessionReady(false);
         try {
           const idToken = await fbUser.getIdToken();

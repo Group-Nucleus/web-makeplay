@@ -1,8 +1,5 @@
 import axios from 'axios';
 
-import { API_BASE_URL } from '@/lib/config';
-import { getAccessToken } from '@/lib/api/token';
-
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -14,26 +11,10 @@ export class ApiError extends Error {
   }
 }
 
-declare module 'axios' {
-  interface InternalAxiosRequestConfig {
-    skipAuth?: boolean;
-  }
-  interface AxiosRequestConfig {
-    skipAuth?: boolean;
-  }
-}
-
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: '/v1',
   headers: { Accept: 'application/json' },
-});
-
-apiClient.interceptors.request.use((config) => {
-  if (!config.skipAuth) {
-    const token = getAccessToken();
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 apiClient.interceptors.response.use(

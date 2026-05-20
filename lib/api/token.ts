@@ -1,4 +1,3 @@
-const ACCESS_TOKEN_KEY = 'boraplay_access_token';
 const SESSION_USER_KEY = 'boraplay_session_user';
 
 export interface StoredUser {
@@ -6,19 +5,6 @@ export interface StoredUser {
   displayName: string | null;
   email: string | null;
   photoURL?: string | null;
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
-}
-
-export function setAccessToken(token: string): void {
-  localStorage.setItem(ACCESS_TOKEN_KEY, token);
-}
-
-export function clearAccessToken(): void {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
 export function getSessionUser(): StoredUser | null {
@@ -41,6 +27,5 @@ export function clearSessionUser(): void {
 }
 
 export function clearSession(): void {
-  clearAccessToken();
   clearSessionUser();
 }

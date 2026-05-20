@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import { getAccessToken } from '@/lib/api/token';
+import { getSessionUser } from '@/lib/api/token';
 import type {
   SeriesDetailResponseDto,
   SeriesParticipantDto,
@@ -26,7 +26,7 @@ export async function getSeriesDetail(
   inviteCode?: string,
 ): Promise<SeriesDetailResponseDto> {
   const code = inviteCode ? normalizeInviteIndexId(inviteCode) : undefined;
-  const skipAuth = !getAccessToken() && !!code;
+  const skipAuth = !getSessionUser() && !!code;
   return api<SeriesDetailResponseDto>(
     `/match-series/${seriesId}${queryString({ code })}`,
     skipAuth ? { skipAuth: true } : {},

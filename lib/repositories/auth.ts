@@ -1,8 +1,6 @@
 import { api } from '@/lib/api/client';
 import {
   clearSession,
-  getAccessToken,
-  setAccessToken,
   setSessionUser,
   type StoredUser,
 } from '@/lib/api/token';
@@ -20,7 +18,6 @@ export interface GuestClaimResult {
 }
 
 export interface ApiSessionResponse {
-  accessToken: string;
   user: UserDocument;
   guestClaim?: GuestClaimResult;
 }
@@ -43,12 +40,16 @@ function applyGuestClaim(session: ApiSessionResponse): void {
 
 export async function createApiSession(idToken: string): Promise<ApiSessionResponse> {
   const guestToken = getPendingGuestClaimToken() ?? undefined;
-  const session = await api<ApiSessionResponse>('/auth/session', {
+  const res = await fetch('/api/auth/session', {
     method: 'POST',
-    body: { idToken, guestToken },
-    skipAuth: true,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, guestToken }),
   });
-  setAccessToken(session.accessToken);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
+    throw new Error(err?.error?.message ?? 'Falha ao criar sessão');
+  }
+  const session = await res.json() as ApiSessionResponse;
   setSessionUser(userToStored(session.user));
   applyGuestClaim(session);
   return session;
@@ -59,31 +60,38 @@ export async function createPhoneSession(
   password: string,
 ): Promise<ApiSessionResponse> {
   const guestToken = getPendingGuestClaimToken() ?? undefined;
-  const session = await api<ApiSessionResponse>('/auth/phone', {
+  const res = await fetch('/api/auth/phone', {
     method: 'POST',
-    body: { phone, password, guestToken },
-    skipAuth: true,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, password, guestToken }),
   });
-  setAccessToken(session.accessToken);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
+    throw new Error(err?.error?.message ?? 'Falha ao criar sessão');
+  }
+  const session = await res.json() as ApiSessionResponse;
   setSessionUser(userToStored(session.user));
   applyGuestClaim(session);
   return session;
 }
 
 export async function restoreApiSession(): Promise<StoredUser | null> {
-  const token = getAccessToken();
-  if (!token) return null;
   try {
     const me = await api<UserDocument>('/users/me');
     const user = userToStored(me);
     setSessionUser(user);
     return user;
   } catch {
-    clearSession();
+    await clearApiSession();
     return null;
   }
 }
 
 export async function clearApiSession(): Promise<void> {
   clearSession();
+  try {
+    await fetch('/api/auth/session', { method: 'DELETE' });
+  } catch {
+    // best effort
+  }
 }
